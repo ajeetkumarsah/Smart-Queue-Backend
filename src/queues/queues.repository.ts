@@ -11,13 +11,13 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
     // In production, this should run in a transaction with locks
     const countResult = await this.query<{count: string}>('SELECT COUNT(*) FROM queues WHERE service_id = $1 AND status IN ($2, $3, $4)', [serviceId, QueueStatus.WAITING, QueueStatus.CALLED, QueueStatus.SERVING]);
     const position = parseInt(countResult[0]?.count || '0', 10) + 1;
-    const token = \`T-\${position.toString().padStart(4, '0')}\`;
+    const token = `T-${position.toString().padStart(4, '0')}`;
 
-    const text = \`
-      INSERT INTO \${this.tableName} (user_id, service_id, token_number, position, status)
+    const text = `
+      INSERT INTO ${this.tableName} (user_id, service_id, token_number, position, status)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    \`;
+    `;
     const result = await this.queryOne(text, [userId, serviceId, token, position, QueueStatus.WAITING]);
     return result as QueueEntity;
   }
@@ -40,7 +40,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
     if (!current) throw new BadRequestException('Queue not found');
 
     if (!this.isValidTransition(current.status, newStatus)) {
-      throw new BadRequestException(\`Invalid transition from \${current.status} to \${newStatus}\`);
+      throw new BadRequestException(`Invalid transition from ${current.status} to ${newStatus}`);
     }
 
     let timestampField = '';
@@ -48,7 +48,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
     else if (newStatus === QueueStatus.SERVING) timestampField = ', served_at = NOW()';
     else if (newStatus === QueueStatus.COMPLETED) timestampField = ', completed_at = NOW()';
 
-    const text = \`UPDATE \${this.tableName} SET status = $1 \${timestampField} WHERE id = $2 RETURNING *\`;
+    const text = `UPDATE ${this.tableName} SET status = $1 ${timestampField} WHERE id = $2 RETURNING *`;
     const result = await this.queryOne(text, [newStatus, queueId]);
     return result as QueueEntity;
   }
