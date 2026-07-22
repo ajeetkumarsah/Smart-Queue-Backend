@@ -17,7 +17,7 @@ export class QueuesService {
     await this.notificationsQueue.add('send-notification', {
       userId,
       title: 'Joined Queue',
-      body: \`You have successfully joined the queue. Your token is \${queue.token_number}.\`,
+      body: `You have successfully joined the queue. Your token is ${queue.token_number}.`,
     });
 
     return queue;
@@ -34,10 +34,10 @@ export class QueuesService {
     let body = '';
     if (newStatus === QueueStatus.CALLED) {
       title = 'It is your turn!';
-      body = \`Token \${queue.token_number} is now being called.\`;
+      body = `Token ${queue.token_number} is now being called.`;
     } else if (newStatus === QueueStatus.COMPLETED) {
       title = 'Service Completed';
-      body = \`Thank you for visiting! Please leave your feedback.\`;
+      body = `Thank you for visiting! Please leave your feedback.`;
     }
 
     if (title) {
