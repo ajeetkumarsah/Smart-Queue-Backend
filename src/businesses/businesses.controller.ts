@@ -47,6 +47,29 @@ export class BusinessesController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('nearby')
+  async getNearby(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('radius') radius?: string,
+  ) {
+    const latitude = parseFloat(lat) || 37.7749;
+    const longitude = parseFloat(lng) || -122.4194;
+    const radiusKm = radius ? parseFloat(radius) : 50;
+    const data = await this.businessesService.getNearbyBusinesses(
+      latitude,
+      longitude,
+      radiusKm,
+    );
+    return {
+      status: true,
+      message: 'Nearby businesses found',
+      data,
+      error: null,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getById(@Param('id') id: string) {
     const data = await this.businessesService.getById(id);

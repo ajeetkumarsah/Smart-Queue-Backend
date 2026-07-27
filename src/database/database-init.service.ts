@@ -70,6 +70,8 @@ export class DatabaseInitService implements OnModuleInit {
             address TEXT,
             phone VARCHAR(50),
             logo_url VARCHAR(255),
+            latitude DOUBLE PRECISION,
+            longitude DOUBLE PRECISION,
             is_verified BOOLEAN DEFAULT false,
             is_active BOOLEAN DEFAULT true,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -194,6 +196,9 @@ export class DatabaseInitService implements OnModuleInit {
         `ALTER TABLE services ADD COLUMN IF NOT EXISTS estimated_wait_time_mins INT DEFAULT 15;`,
         `ALTER TABLE services ADD COLUMN IF NOT EXISTS max_queue_size INT DEFAULT 50;`,
         `ALTER TABLE services ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;`,
+        `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`,
+        `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`,
+        `CREATE INDEX IF NOT EXISTS idx_businesses_location ON businesses (latitude, longitude);`,
       ];
       for (const query of addColumnQueries) {
         await client
@@ -291,8 +296,8 @@ export class DatabaseInitService implements OnModuleInit {
       if (ownerId) {
         const businessRes = await client.query<{ id: string }>(
           `
-          INSERT INTO businesses (owner_id, name, description, address, phone, is_verified, is_active)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           ON CONFLICT DO NOTHING
           RETURNING id
         `,
@@ -302,6 +307,8 @@ export class DatabaseInitService implements OnModuleInit {
             'General Healthcare & Cardiology',
             '123 Health Ave, New York, NY',
             '+18005550199',
+            37.7749,
+            -122.4194,
             true,
             true,
           ],
@@ -330,8 +337,83 @@ export class DatabaseInitService implements OnModuleInit {
               ($1, 'General Consultation', 'Walk-in doctor consultation', 15, 15, 50, true),
               ($1, 'Dental Checkup', 'Routine dental cleaning and checkup', 20, 20, 30, true)
             `,
-              [businessId],
             );
+          }
+        }
+
+        // Seed Sample Parking Businesses for Nearby Search
+        const parkingBusinesses = [
+          {
+            name: 'Central Mall Smart Parking',
+            desc: 'Automated barrier and valet parking at Central Mall',
+            address: '456 Market St, San Francisco, CA',
+            lat: 37.775,
+            lng: -122.418,
+            service: 'Express Valet Parking',
+            waitMins: 10,
+          },
+          {
+            name: 'Downtown Express Valet Parking',
+            desc: 'Covered VIP parking with instant queue join',
+            address: '789 Mission St, San Francisco, CA',
+            lat: 37.78,
+            lng: -122.41,
+            service: 'Covered VIP Parking',
+            waitMins: 5,
+          },
+          {
+            name: 'Airport Terminal Smart Parking',
+            desc: 'Short-stay gate parking and luggage drop-off',
+            address: '100 Airport Blvd, San Francisco, CA',
+            lat: 37.6213,
+            lng: -122.379,
+            service: 'Short-Stay Gate Queue',
+            waitMins: 15,
+          },
+        ];
+
+        for (const p of parkingBusinesses) {
+          const res = await client.query<{ id: string }>(
+            `
+            INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT DO NOTHING
+            RETURNING id
+          `,
+            [
+              ownerId,
+              p.name,
+              p.desc,
+              p.address,
+              '+18005550200',
+              p.lat,
+              p.lng,
+              true,
+              true,
+            ],
+          );
+          let pId = res.rows[0]?.id;
+          if (!pId) {
+            const existRes = await client.query<{ id: string }>(
+              `SELECT id FROM businesses WHERE name = $1 LIMIT 1`,
+              [p.name],
+            );
+            pId = existRes.rows[0]?.id;
+          }
+          if (pId) {
+            const servRes = await client.query<{ id: string }>(
+              `SELECT id FROM services WHERE business_id = $1 LIMIT 1`,
+              [pId],
+            );
+            if (servRes.rows.length === 0) {
+              await client.query(
+                `
+                INSERT INTO services (business_id, name, description, estimated_wait_time_mins, estimated_time_mins, max_queue_size, is_active)
+                VALUES ($1, $2, $3, $4, $4, 50, true)
+              `,
+                [pId, p.service, p.desc, p.waitMins],
+              );
+            }
           }
         }
       }

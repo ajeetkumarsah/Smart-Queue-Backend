@@ -26,6 +26,10 @@ export class BusinessesService {
     return this.businessesRepository.search(term);
   }
 
+  async getNearbyBusinesses(lat: number, lng: number, radiusKm = 50) {
+    return this.businessesRepository.findNearby(lat, lng, radiusKm);
+  }
+
   async getById(id: string) {
     const business = await this.businessesRepository.findById(id);
     if (!business) {

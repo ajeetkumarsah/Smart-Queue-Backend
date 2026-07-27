@@ -126,8 +126,8 @@ async function seed() {
     console.log("Seeding Business...");
     const business = await client.query(
       `
-      INSERT INTO businesses (owner_id, name, description, address, phone, is_verified, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id
     `,
       [
@@ -136,12 +136,64 @@ async function seed() {
         "Top tier medical consulting.",
         "123 Health St.",
         "+10000000001",
+        37.7749,
+        -122.4194,
         true,
         true,
       ],
     );
 
     const businessId = business.rows[0].id;
+
+    console.log("Seeding Parking Businesses for Nearby Search...");
+    const parkingBusinesses = [
+      {
+        name: "Central Mall Smart Parking",
+        desc: "Automated barrier and valet parking at Central Mall",
+        address: "456 Market St, San Francisco, CA",
+        lat: 37.7750,
+        lng: -122.4180,
+        service: "Express Valet Parking",
+        waitMins: 10,
+      },
+      {
+        name: "Downtown Express Valet Parking",
+        desc: "Covered VIP parking with instant queue join",
+        address: "789 Mission St, San Francisco, CA",
+        lat: 37.7800,
+        lng: -122.4100,
+        service: "Covered VIP Parking",
+        waitMins: 5,
+      },
+      {
+        name: "Airport Terminal Smart Parking",
+        desc: "Short-stay gate parking and luggage drop-off",
+        address: "100 Airport Blvd, San Francisco, CA",
+        lat: 37.6213,
+        lng: -122.3790,
+        service: "Short-Stay Gate Queue",
+        waitMins: 15,
+      },
+    ];
+
+    for (const p of parkingBusinesses) {
+      const res = await client.query(
+        `
+        INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id
+      `,
+        [ownerId, p.name, p.desc, p.address, "+10000000200", p.lat, p.lng, true, true],
+      );
+      const pId = res.rows[0].id;
+      await client.query(
+        `
+        INSERT INTO services (business_id, name, description, estimated_wait_time_mins, max_queue_size, is_active)
+        VALUES ($1, $2, $3, $4, 50, true)
+      `,
+        [pId, p.service, p.desc, p.waitMins],
+      );
+    }
 
     // 4. Insert Services
     console.log("Seeding Services...");

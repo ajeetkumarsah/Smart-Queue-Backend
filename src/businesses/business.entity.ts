@@ -6,6 +6,9 @@ export class BusinessEntity {
   logo_url?: string;
   address?: string;
   phone?: string;
+  latitude?: number;
+  longitude?: number;
+  distance_km?: number;
   is_active: boolean;
   is_verified: boolean;
   created_at: Date;

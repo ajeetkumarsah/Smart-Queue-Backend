@@ -22,12 +22,16 @@ CREATE TABLE IF NOT EXISTS businesses (
     logo_url VARCHAR(255),
     address TEXT,
     phone VARCHAR(20),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     is_active BOOLEAN DEFAULT TRUE,
     is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_businesses_location ON businesses (latitude, longitude);
 
 -- Services Table
 CREATE TABLE IF NOT EXISTS services (

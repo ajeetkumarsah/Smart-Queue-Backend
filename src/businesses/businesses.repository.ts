@@ -26,6 +26,56 @@ export class BusinessesRepository extends BaseRepository<BusinessEntity> {
     );
   }
 
+  async findNearby(lat: number, lng: number, radiusKm = 50): Promise<any[]> {
+    const query = `
+      SELECT b.*,
+        ROUND((6371 * acos(least(1.0, greatest(-1.0, 
+          cos(radians($1)) * cos(radians(b.latitude)) * 
+          cos(radians(b.longitude) - radians($2)) + 
+          sin(radians($1)) * sin(radians(b.latitude))
+        ))))::numeric, 2)::double precision AS distance_km,
+        COALESCE(
+          (SELECT json_agg(s.*) FROM services s WHERE s.business_id = b.id AND s.is_active = true AND s.deleted_at IS NULL),
+          '[]'::json
+        ) as services
+      FROM ${this.tableName} b
+      WHERE b.is_active = true 
+        AND b.deleted_at IS NULL 
+        AND b.latitude IS NOT NULL 
+        AND b.longitude IS NOT NULL
+        AND (6371 * acos(least(1.0, greatest(-1.0, 
+          cos(radians($1)) * cos(radians(b.latitude)) * 
+          cos(radians(b.longitude) - radians($2)) + 
+          sin(radians($1)) * sin(radians(b.latitude))
+        )))) <= $3
+      ORDER BY distance_km ASC
+    `;
+    const results = await this.query(query, [lat, lng, radiusKm]);
+    if (results.length > 0) {
+      return results;
+    }
+    const fallbackQuery = `
+      SELECT b.*,
+        ROUND((6371 * acos(least(1.0, greatest(-1.0, 
+          cos(radians($1)) * cos(radians(b.latitude)) * 
+          cos(radians(b.longitude) - radians($2)) + 
+          sin(radians($1)) * sin(radians(b.latitude))
+        ))))::numeric, 2)::double precision AS distance_km,
+        COALESCE(
+          (SELECT json_agg(s.*) FROM services s WHERE s.business_id = b.id AND s.is_active = true AND s.deleted_at IS NULL),
+          '[]'::json
+        ) as services
+      FROM ${this.tableName} b
+      WHERE b.is_active = true 
+        AND b.deleted_at IS NULL 
+        AND b.latitude IS NOT NULL 
+        AND b.longitude IS NOT NULL
+      ORDER BY distance_km ASC
+      LIMIT 10
+    `;
+    return this.query(fallbackQuery, [lat, lng]);
+  }
+
   async create(data: Partial<BusinessEntity>): Promise<BusinessEntity> {
     const text = `
       INSERT INTO ${this.tableName} (owner_id, name, description, address, phone)
