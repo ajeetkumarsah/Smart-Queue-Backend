@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Pool, QueryResultRow } from 'pg';
-import { PG_CONNECTION } from './database.module';
+import { PG_CONNECTION } from './database.constants';
 
 @Injectable()
 export abstract class BaseRepository<T extends QueryResultRow> {

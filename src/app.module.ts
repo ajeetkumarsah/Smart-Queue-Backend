@@ -21,13 +21,35 @@ import { envValidationSchema } from './config/env.validation';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: configService.get<number>('REDIS_PORT', 6379),
-          password: configService.get<string>('REDIS_PASSWORD'),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
+        if (redisUrl) {
+          try {
+            const url = new URL(redisUrl);
+            return {
+              connection: {
+                host: url.hostname,
+                port: parseInt(url.port || '6379', 10),
+                username: url.username || undefined,
+                password: url.password || undefined,
+                tls:
+                  url.protocol === 'rediss:'
+                    ? { rejectUnauthorized: false }
+                    : undefined,
+              },
+            };
+          } catch {
+            // fallback if REDIS_URL parse fails
+          }
+        }
+        return {
+          connection: {
+            host: configService.get<string>('REDIS_HOST', 'localhost'),
+            port: configService.get<number>('REDIS_PORT', 6379),
+            password: configService.get<string>('REDIS_PASSWORD'),
+          },
+        };
+      },
     }),
     DatabaseModule,
     AuthModule,

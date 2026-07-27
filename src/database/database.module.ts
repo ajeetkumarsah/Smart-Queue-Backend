@@ -2,8 +2,9 @@ import { Module, Global } from '@nestjs/common';
 import { Pool, PoolConfig } from 'pg';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseInitService } from './database-init.service';
+import { PG_CONNECTION } from './database.constants';
 
-export const PG_CONNECTION = 'PG_CONNECTION';
+export { PG_CONNECTION } from './database.constants';
 
 const dbProvider = {
   provide: PG_CONNECTION,

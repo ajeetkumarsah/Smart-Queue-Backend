@@ -2,7 +2,7 @@
 import { Injectable, OnModuleInit, Inject, Logger } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import * as argon2 from 'argon2';
-import { PG_CONNECTION } from './database.module';
+import { PG_CONNECTION } from './database.constants';
 
 @Injectable()
 export class DatabaseInitService implements OnModuleInit {
