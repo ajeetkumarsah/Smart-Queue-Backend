@@ -27,10 +27,37 @@ const dbProvider = {
       (process.env.NODE_ENV === 'production' && !isLocalHost) ||
       (!!connectionString && !isLocalHost);
 
-    const poolConfig: PoolConfig = connectionString
+    let servername = host;
+    let finalConnectionString = connectionString;
+
+    if (connectionString) {
+      try {
+        const url = new URL(connectionString);
+        servername = url.hostname;
+
+        const pgUser = configService.get<string>('POSTGRES_USER');
+        if (
+          url.hostname.includes('pooler.supabase.com') &&
+          url.username === 'postgres' &&
+          pgUser &&
+          pgUser.includes('.')
+        ) {
+          url.username = pgUser;
+          finalConnectionString = url.toString();
+        }
+      } catch {
+        // ignore invalid URL
+      }
+    }
+
+    const sslConfig = sslEnabled
+      ? { rejectUnauthorized: false, servername }
+      : undefined;
+
+    const poolConfig: PoolConfig = finalConnectionString
       ? {
-          connectionString,
-          ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+          connectionString: finalConnectionString,
+          ssl: sslConfig,
         }
       : {
           user: configService.get<string>('POSTGRES_USER', 'postgres'),
@@ -38,7 +65,7 @@ const dbProvider = {
           database: configService.get<string>('POSTGRES_DB', 'smart_queue'),
           password: configService.get<string>('POSTGRES_PASSWORD', 'password'),
           port: configService.get<number>('POSTGRES_PORT', 5432),
-          ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+          ssl: sslConfig,
         };
 
     return new Pool(poolConfig);

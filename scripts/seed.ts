@@ -22,10 +22,36 @@ const sslEnabled =
   (process.env.NODE_ENV === "production" && !isLocalHost) ||
   (!!connectionString && !isLocalHost);
 
-const poolConfig: PoolConfig = connectionString
+let servername = host;
+let finalConnectionString = connectionString;
+
+if (connectionString) {
+  try {
+    const url = new URL(connectionString);
+    servername = url.hostname;
+    const pgUser = process.env.POSTGRES_USER;
+    if (
+      url.hostname.includes("pooler.supabase.com") &&
+      url.username === "postgres" &&
+      pgUser &&
+      pgUser.includes(".")
+    ) {
+      url.username = pgUser;
+      finalConnectionString = url.toString();
+    }
+  } catch {
+    // ignore
+  }
+}
+
+const sslConfig = sslEnabled
+  ? { rejectUnauthorized: false, servername }
+  : undefined;
+
+const poolConfig: PoolConfig = finalConnectionString
   ? {
-      connectionString,
-      ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+      connectionString: finalConnectionString,
+      ssl: sslConfig,
     }
   : {
       host,
@@ -33,7 +59,7 @@ const poolConfig: PoolConfig = connectionString
       user: process.env.POSTGRES_USER || "postgres",
       password: process.env.POSTGRES_PASSWORD || "password",
       database: process.env.POSTGRES_DB || "smart_queue",
-      ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+      ssl: sslConfig,
     };
 
 const pool = new Pool(poolConfig);
