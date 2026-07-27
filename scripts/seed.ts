@@ -1,18 +1,42 @@
 import * as argon2 from "argon2";
 import * as dotenv from "dotenv";
 import * as path from "path";
-import { Pool } from "pg";
+import { Pool, PoolConfig } from "pg";
 
 // Load env
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-const pool = new Pool({
-  host: process.env.POSTGRES_HOST || "localhost",
-  port: parseInt(process.env.POSTGRES_PORT || "5432", 10),
-  user: process.env.POSTGRES_USER || "postgres",
-  password: process.env.POSTGRES_PASSWORD || "password",
-  database: process.env.POSTGRES_DB || "smart_queue",
-});
+const connectionString =
+  process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const host = process.env.POSTGRES_HOST || "localhost";
+const isLocalHost =
+  host === "localhost" ||
+  host === "127.0.0.1" ||
+  (connectionString &&
+    (connectionString.includes("localhost") ||
+      connectionString.includes("127.0.0.1")));
+
+const sslEnabled =
+  process.env.DB_SSL === "true" ||
+  process.env.POSTGRES_SSL === "true" ||
+  (process.env.NODE_ENV === "production" && !isLocalHost) ||
+  (!!connectionString && !isLocalHost);
+
+const poolConfig: PoolConfig = connectionString
+  ? {
+      connectionString,
+      ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+    }
+  : {
+      host,
+      port: parseInt(process.env.POSTGRES_PORT || "5432", 10),
+      user: process.env.POSTGRES_USER || "postgres",
+      password: process.env.POSTGRES_PASSWORD || "password",
+      database: process.env.POSTGRES_DB || "smart_queue",
+      ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+    };
+
+const pool = new Pool(poolConfig);
 
 async function seed() {
   console.log("Starting seed...");
@@ -26,9 +50,9 @@ async function seed() {
     console.log("Seeding Users...");
     const adminUser = await client.query(
       `
-      INSERT INTO users (name, email, phone, password_hash, role)
+      INSERT INTO users (full_name, email, phone, password_hash, role)
       VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name RETURNING id
+      ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name RETURNING id
     `,
       [
         "Super Admin",
@@ -41,9 +65,9 @@ async function seed() {
 
     const businessUser = await client.query(
       `
-      INSERT INTO users (name, email, phone, password_hash, role)
+      INSERT INTO users (full_name, email, phone, password_hash, role)
       VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name RETURNING id
+      ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name RETURNING id
     `,
       [
         "Dr. Smith",
@@ -56,9 +80,9 @@ async function seed() {
 
     const customerUser = await client.query(
       `
-      INSERT INTO users (name, email, phone, password_hash, role)
+      INSERT INTO users (full_name, email, phone, password_hash, role)
       VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name RETURNING id
+      ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name RETURNING id
     `,
       [
         "John Customer",
@@ -76,8 +100,8 @@ async function seed() {
     console.log("Seeding Business...");
     const business = await client.query(
       `
-      INSERT INTO businesses (owner_id, name, description, address, phone, is_verified)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO businesses (owner_id, name, description, address, phone, is_verified, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id
     `,
       [
@@ -86,6 +110,7 @@ async function seed() {
         "Top tier medical consulting.",
         "123 Health St.",
         "+10000000001",
+        true,
         true,
       ],
     );
@@ -96,20 +121,20 @@ async function seed() {
     console.log("Seeding Services...");
     const service1 = await client.query(
       `
-      INSERT INTO services (business_id, name, description, estimated_wait_time_mins, max_queue_size)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO services (business_id, name, description, estimated_wait_time_mins, max_queue_size, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id
     `,
-      [businessId, "General Consultation", "Walk-in checkup", 15, 50],
+      [businessId, "General Consultation", "Walk-in checkup", 15, 50, true],
     );
 
     const service2 = await client.query(
       `
-      INSERT INTO services (business_id, name, description, estimated_wait_time_mins, max_queue_size)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO services (business_id, name, description, estimated_wait_time_mins, max_queue_size, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id
     `,
-      [businessId, "Specialist Review", "Detailed diagnosis", 30, 20],
+      [businessId, "Specialist Review", "Detailed diagnosis", 30, 20, true],
     );
 
     const serviceId1 = service1.rows[0].id;
@@ -127,9 +152,9 @@ async function seed() {
     // Another dummy queue to show position
     const dummyUser = await client.query(
       `
-      INSERT INTO users (name, email, phone, password_hash, role)
+      INSERT INTO users (full_name, email, phone, password_hash, role)
       VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name RETURNING id
+      ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name RETURNING id
     `,
       [
         "Jane Dummy",

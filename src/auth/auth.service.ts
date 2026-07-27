@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { UsersRepository } from '../users/users.repository';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -21,7 +25,7 @@ export class AuthService {
       ...dto,
       password_hash: hashedPassword,
     });
-    
+
     return this.generateTokens(user);
   }
 
@@ -30,7 +34,10 @@ export class AuthService {
     if (!user || !user.password_hash) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const isPasswordValid = await argon2.verify(user.password_hash, dto.password);
+    const isPasswordValid = await argon2.verify(
+      user.password_hash,
+      dto.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -46,8 +53,7 @@ export class AuthService {
         email: user.email,
         full_name: user.full_name,
         role: user.role,
-      }
+      },
     };
   }
 }
-

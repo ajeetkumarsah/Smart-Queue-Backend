@@ -7,7 +7,10 @@ export class ServicesRepository extends BaseRepository<ServiceEntity> {
   protected readonly tableName = 'services';
 
   async findByBusinessId(businessId: string): Promise<ServiceEntity[]> {
-    return this.query(`SELECT * FROM ${this.tableName} WHERE business_id = $1 AND deleted_at IS NULL`, [businessId]);
+    return this.query(
+      `SELECT * FROM ${this.tableName} WHERE business_id = $1 AND deleted_at IS NULL`,
+      [businessId],
+    );
   }
 
   async create(data: Partial<ServiceEntity>): Promise<ServiceEntity> {
@@ -23,6 +26,6 @@ export class ServicesRepository extends BaseRepository<ServiceEntity> {
       data.estimated_wait_time_mins,
       data.max_queue_size,
     ]);
-    return result as ServiceEntity;
+    return result;
   }
 }

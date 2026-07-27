@@ -13,7 +13,7 @@ export class QueuesService {
 
   async joinQueue(userId: string, serviceId: string) {
     const queue = await this.queuesRepo.joinQueue(userId, serviceId);
-    
+
     await this.notificationsQueue.add('send-notification', {
       userId,
       title: 'Joined Queue',
@@ -29,7 +29,7 @@ export class QueuesService {
 
   async updateStatus(queueId: string, newStatus: QueueStatus) {
     const queue = await this.queuesRepo.updateStatus(queueId, newStatus);
-    
+
     let title = '';
     let body = '';
     if (newStatus === QueueStatus.CALLED) {
@@ -51,4 +51,3 @@ export class QueuesService {
     return queue;
   }
 }
-

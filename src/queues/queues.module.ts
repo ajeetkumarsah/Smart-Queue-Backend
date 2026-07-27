@@ -15,4 +15,3 @@ import { QueueProcessor } from './queue.processor';
   controllers: [QueuesController],
 })
 export class QueuesModule {}
-

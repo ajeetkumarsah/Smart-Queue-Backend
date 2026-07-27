@@ -13,7 +13,7 @@ export class AuthController {
       status: true,
       message: 'Registration successful',
       data,
-      error: null
+      error: null,
     };
   }
 
@@ -25,8 +25,7 @@ export class AuthController {
       status: true,
       message: 'Login successful',
       data,
-      error: null
+      error: null,
     };
   }
 }
-

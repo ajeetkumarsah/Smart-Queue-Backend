@@ -11,7 +11,10 @@ export abstract class BaseRepository<T extends QueryResultRow> {
   /**
    * Executes a raw SQL query safely with parameters
    */
-  protected async query<R extends QueryResultRow = T>(text: string, params?: any[]): Promise<R[]> {
+  protected async query<R extends QueryResultRow = T>(
+    text: string,
+    params?: any[],
+  ): Promise<R[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query<R>(text, params);
@@ -24,7 +27,10 @@ export abstract class BaseRepository<T extends QueryResultRow> {
   /**
    * Executes a raw SQL query safely and returns the first row
    */
-  protected async queryOne<R extends QueryResultRow = T>(text: string, params?: any[]): Promise<R | null> {
+  protected async queryOne<R extends QueryResultRow = T>(
+    text: string,
+    params?: any[],
+  ): Promise<R | null> {
     const rows = await this.query<R>(text, params);
     return rows.length > 0 ? rows[0] : null;
   }

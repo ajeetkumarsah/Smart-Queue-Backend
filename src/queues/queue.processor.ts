@@ -12,7 +12,9 @@ export class QueueProcessor extends WorkerHost {
     if (job.name === 'send-notification') {
       const { userId, title, body } = job.data;
       // Here we would integrate with Firebase Admin SDK to send FCM
-      this.logger.log(`Sending notification to user ${userId}: ${title} - ${body}`);
+      this.logger.log(
+        `Sending notification to user ${userId}: ${title} - ${body}`,
+      );
     }
 
     return {};

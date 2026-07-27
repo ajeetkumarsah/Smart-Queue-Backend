@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Query, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Req,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { BusinessesService } from './businesses.service';
 import { CreateBusinessDto } from './businesses.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,7 +31,12 @@ export class BusinessesController {
   @Get('my')
   async getMyBusinesses(@Req() req) {
     const data = await this.businessesService.findMyBusinesses(req.user.id);
-    return { status: true, message: 'Fetched my businesses', data, error: null };
+    return {
+      status: true,
+      message: 'Fetched my businesses',
+      data,
+      error: null,
+    };
   }
 
   @UseGuards(JwtAuthGuard)

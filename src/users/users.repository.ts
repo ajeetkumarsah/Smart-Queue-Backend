@@ -17,8 +17,14 @@ export class UsersRepository extends BaseRepository<UserEntity> {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
-    const values = [user.email, user.password_hash, user.full_name, user.phone, user.role || 'CUSTOMER'];
+    const values = [
+      user.email,
+      user.password_hash,
+      user.full_name,
+      user.phone,
+      user.role || 'CUSTOMER',
+    ];
     const result = await this.queryOne(text, values);
-    return result as UserEntity;
+    return result;
   }
 }

@@ -15,9 +15,12 @@ import { JwtStrategy } from './jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'super-secret-key-for-dev'),
-        signOptions: { 
-          expiresIn: configService.get<string>('JWT_EXPIRATION', '15m') as any
+        secret: configService.get<string>(
+          'JWT_SECRET',
+          'super-secret-key-for-dev',
+        ),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRATION', '15m') as any,
         },
       }),
     }),
@@ -26,4 +29,3 @@ import { JwtStrategy } from './jwt.strategy';
   controllers: [AuthController],
 })
 export class AuthModule {}
-
