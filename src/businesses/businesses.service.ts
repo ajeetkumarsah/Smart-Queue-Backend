@@ -13,6 +13,8 @@ export class BusinessesService {
       description: dto.description,
       address: dto.address,
       phone: dto.phone,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
       is_active: true,
       is_verified: false,
     });

@@ -78,8 +78,8 @@ export class BusinessesRepository extends BaseRepository<BusinessEntity> {
 
   async create(data: Partial<BusinessEntity>): Promise<BusinessEntity> {
     const text = `
-      INSERT INTO ${this.tableName} (owner_id, name, description, address, phone)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO ${this.tableName} (owner_id, name, description, address, phone, latitude, longitude)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
     const result = await this.queryOne(text, [
@@ -88,6 +88,8 @@ export class BusinessesRepository extends BaseRepository<BusinessEntity> {
       data.description,
       data.address,
       data.phone,
+      data.latitude,
+      data.longitude,
     ]);
     return result;
   }
