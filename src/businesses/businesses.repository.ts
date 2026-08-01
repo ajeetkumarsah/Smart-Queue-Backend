@@ -113,4 +113,21 @@ export class BusinessesRepository extends BaseRepository<BusinessEntity> {
     ]);
     return result;
   }
+
+  async update(id: string, data: Partial<BusinessEntity>): Promise<BusinessEntity | null> {
+    const keys = Object.keys(data).filter(key => data[key] !== undefined);
+    if (keys.length === 0) return this.findById(id);
+
+    const setClause = keys.map((key, index) => `${key} = $${index + 2}`).join(', ');
+    const values = keys.map((key) => data[key]);
+
+    const text = `
+      UPDATE ${this.tableName}
+      SET ${setClause}
+      WHERE id = $1 AND deleted_at IS NULL
+      RETURNING *
+    `;
+
+    return this.queryOne(text, [id, ...values]);
+  }
 }

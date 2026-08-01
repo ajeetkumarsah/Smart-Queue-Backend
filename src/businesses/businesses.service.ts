@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { BusinessesRepository } from './businesses.repository';
-import { CreateBusinessDto } from './businesses.dto';
+import { CreateBusinessDto, UpdateBusinessDto } from './businesses.dto';
 
 @Injectable()
 export class BusinessesService {
@@ -18,6 +18,18 @@ export class BusinessesService {
       is_active: true,
       is_verified: false,
     });
+  }
+
+  async update(id: string, ownerId: string, dto: UpdateBusinessDto) {
+    const business = await this.getById(id);
+    if (business.owner_id !== ownerId) {
+      throw new ForbiddenException('You do not have permission to edit this business');
+    }
+    const updated = await this.businessesRepository.update(id, dto);
+    if (!updated) {
+      throw new NotFoundException('Business could not be updated');
+    }
+    return updated;
   }
 
   async findMyBusinesses(ownerId: string) {
