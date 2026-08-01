@@ -10,6 +10,7 @@ import {
   Param,
   UseInterceptors,
   UploadedFile,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -41,6 +42,17 @@ export class BusinessesController {
   ) {
     const data = await this.businessesService.update(id, req.user.id, dto);
     return { status: true, message: 'Business updated', data, error: null };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Delete(':id')
+  async delete(
+    @Req() req,
+    @Param('id') id: string,
+  ) {
+    await this.businessesService.delete(id, req.user.id);
+    return { status: true, message: 'Business deleted successfully', data: null, error: null };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

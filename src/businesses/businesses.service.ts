@@ -54,6 +54,18 @@ export class BusinessesService {
     return updated;
   }
 
+  async delete(id: string, ownerId: string) {
+    const business = await this.getById(id);
+    if (business.owner_id !== ownerId) {
+      throw new ForbiddenException('You do not have permission to delete this business');
+    }
+    const success = await this.businessesRepository.softDelete(id);
+    if (!success) {
+      throw new NotFoundException('Business could not be deleted');
+    }
+    return true;
+  }
+
   async findMyBusinesses(ownerId: string) {
     return this.businessesRepository.findByOwnerId(ownerId);
   }
