@@ -43,6 +43,18 @@ export class QueuesController {
     };
   }
 
+  @Roles('CUSTOMER')
+  @Post(':id/leave')
+  async leaveQueue(@Request() req: any, @Param('id') id: string) {
+    const data = await this.queuesService.leaveQueue(req.user.id, id);
+    return {
+      status: true,
+      message: 'Left queue successfully',
+      data,
+      error: null,
+    };
+  }
+
   @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
   @Patch(':id/status')
   async updateStatus(

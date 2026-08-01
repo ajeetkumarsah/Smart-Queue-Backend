@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueuesRepository } from './queues.repository';
@@ -25,6 +25,14 @@ export class QueuesService {
 
   async getActiveQueues(userId: string) {
     return this.queuesRepo.findActiveQueuesByUserId(userId);
+  }
+
+  async leaveQueue(userId: string, queueId: string) {
+    const queue = await this.queuesRepo.findById(queueId);
+    if (!queue || queue.user_id !== userId) {
+      throw new BadRequestException('Queue not found or unauthorized');
+    }
+    return this.updateStatus(queueId, QueueStatus.CANCELLED);
   }
 
   async updateStatus(queueId: string, newStatus: QueueStatus) {
