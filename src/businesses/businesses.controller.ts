@@ -8,7 +8,11 @@ import {
   Req,
   Query,
   Param,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { BusinessesService } from './businesses.service';
 import { CreateBusinessDto, UpdateBusinessDto } from './businesses.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,6 +41,21 @@ export class BusinessesController {
   ) {
     const data = await this.businessesService.update(id, req.user.id, dto);
     return { status: true, message: 'Business updated', data, error: null };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Post(':id/logo')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: memoryStorage(),
+  }))
+  async uploadLogo(
+    @Req() req,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const data = await this.businessesService.uploadLogo(id, req.user.id, file);
+    return { status: true, message: 'Logo uploaded successfully', data, error: null };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
