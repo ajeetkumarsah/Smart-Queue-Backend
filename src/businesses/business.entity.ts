@@ -12,6 +12,11 @@ export class BusinessEntity {
   distance_km?: number;
   is_active: boolean;
   is_verified: boolean;
+  // Computed / joined fields
+  owner_name?: string;
+  avg_rating?: number;
+  review_count?: number;
+  services?: Record<string, unknown>[];
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;

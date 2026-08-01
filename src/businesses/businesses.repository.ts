@@ -13,70 +13,86 @@ export class BusinessesRepository extends BaseRepository<BusinessEntity> {
     );
   }
 
-  async search(term: string, category?: string): Promise<BusinessEntity[]> {
+  async search(term: string, category?: string): Promise<any[]> {
     const searchPattern = `%${term}%`;
     return this.query(
       `
-      SELECT * FROM ${this.tableName} 
-      WHERE (name ILIKE $1 OR description ILIKE $1) 
-      AND is_active = true 
-      AND deleted_at IS NULL
-      AND ($2::VARCHAR IS NULL OR category = $2)
+      SELECT b.*,
+        u.full_name AS owner_name,
+        COALESCE(
+          (SELECT ROUND(AVG(f.rating)::numeric, 1)
+           FROM feedback f WHERE f.business_id = b.id), 0
+        ) AS avg_rating,
+        COALESCE(
+          (SELECT COUNT(*) FROM feedback f WHERE f.business_id = b.id), 0
+        ) AS review_count
+      FROM ${this.tableName} b
+      LEFT JOIN users u ON u.id = b.owner_id
+      WHERE (b.name ILIKE $1 OR b.description ILIKE $1) 
+      AND b.is_active = true 
+      AND b.deleted_at IS NULL
+      AND ($2::VARCHAR IS NULL OR b.category = $2)
     `,
       [searchPattern, category || null],
     );
   }
 
-  async findNearby(lat: number, lng: number, radiusKm = 50, category?: string): Promise<any[]> {
-    const query = `
+  async findNearby(
+    lat: number,
+    lng: number,
+    radiusKm = 50,
+    category?: string,
+  ): Promise<any[]> {
+    const baseSelect = `
       SELECT b.*,
-        ROUND((6371 * acos(least(1.0, greatest(-1.0, 
-          cos(radians($1)) * cos(radians(b.latitude)) * 
-          cos(radians(b.longitude) - radians($2)) + 
+        u.full_name AS owner_name,
+        ROUND((6371 * acos(least(1.0, greatest(-1.0,
+          cos(radians($1)) * cos(radians(b.latitude)) *
+          cos(radians(b.longitude) - radians($2)) +
           sin(radians($1)) * sin(radians(b.latitude))
         ))))::numeric, 2)::double precision AS distance_km,
         COALESCE(
-          (SELECT json_agg(s.*) FROM services s WHERE s.business_id = b.id AND s.is_active = true AND s.deleted_at IS NULL),
+          (SELECT json_agg(s.*)
+           FROM services s
+           WHERE s.business_id = b.id
+             AND s.is_active = true
+             AND s.deleted_at IS NULL),
           '[]'::json
-        ) as services
+        ) AS services,
+        COALESCE(
+          (SELECT ROUND(AVG(f.rating)::numeric, 1)
+           FROM feedback f WHERE f.business_id = b.id), 0
+        ) AS avg_rating,
+        COALESCE(
+          (SELECT COUNT(*)
+           FROM feedback f WHERE f.business_id = b.id), 0
+        ) AS review_count
       FROM ${this.tableName} b
-      WHERE b.is_active = true 
-        AND b.deleted_at IS NULL 
-        AND b.latitude IS NOT NULL 
+      LEFT JOIN users u ON u.id = b.owner_id
+      WHERE b.is_active = true
+        AND b.deleted_at IS NULL
+        AND b.latitude IS NOT NULL
         AND b.longitude IS NOT NULL
+    `;
+    const withinRadius = await this.query(
+      `${baseSelect}
         AND ($4::VARCHAR IS NULL OR b.category = $4)
-        AND (6371 * acos(least(1.0, greatest(-1.0, 
-          cos(radians($1)) * cos(radians(b.latitude)) * 
-          cos(radians(b.longitude) - radians($2)) + 
+        AND (6371 * acos(least(1.0, greatest(-1.0,
+          cos(radians($1)) * cos(radians(b.latitude)) *
+          cos(radians(b.longitude) - radians($2)) +
           sin(radians($1)) * sin(radians(b.latitude))
         )))) <= $3
-      ORDER BY distance_km ASC
-    `;
-    const results = await this.query(query, [lat, lng, radiusKm, category || null]);
-    if (results.length > 0) {
-      return results;
-    }
-    const fallbackQuery = `
-      SELECT b.*,
-        ROUND((6371 * acos(least(1.0, greatest(-1.0, 
-          cos(radians($1)) * cos(radians(b.latitude)) * 
-          cos(radians(b.longitude) - radians($2)) + 
-          sin(radians($1)) * sin(radians(b.latitude))
-        ))))::numeric, 2)::double precision AS distance_km,
-        COALESCE(
-          (SELECT json_agg(s.*) FROM services s WHERE s.business_id = b.id AND s.is_active = true AND s.deleted_at IS NULL),
-          '[]'::json
-        ) as services
-      FROM ${this.tableName} b
-      WHERE b.is_active = true 
-        AND b.deleted_at IS NULL 
-        AND b.latitude IS NOT NULL 
-        AND b.longitude IS NOT NULL
+      ORDER BY distance_km ASC`,
+      [lat, lng, radiusKm, category || null],
+    );
+    if (withinRadius.length > 0) return withinRadius;
+    return this.query(
+      `${baseSelect}
         AND ($3::VARCHAR IS NULL OR b.category = $3)
       ORDER BY distance_km ASC
-      LIMIT 10
-    `;
-    return this.query(fallbackQuery, [lat, lng, category || null]);
+      LIMIT 10`,
+      [lat, lng, category || null],
+    );
   }
 
   async create(data: Partial<BusinessEntity>): Promise<BusinessEntity> {
