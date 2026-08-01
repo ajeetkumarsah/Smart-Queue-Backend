@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS businesses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL REFERENCES users(id),
     name VARCHAR(255) NOT NULL,
+    category VARCHAR(100),
     description TEXT,
     logo_url VARCHAR(255),
     address TEXT,

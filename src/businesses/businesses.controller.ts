@@ -41,8 +41,11 @@ export class BusinessesController {
 
   @UseGuards(JwtAuthGuard)
   @Get('search')
-  async search(@Query('q') query: string) {
-    const data = await this.businessesService.searchBusinesses(query || '');
+  async search(
+    @Query('q') query: string,
+    @Query('category') category?: string,
+  ) {
+    const data = await this.businessesService.searchBusinesses(query || '', category);
     return { status: true, message: 'Search results', data, error: null };
   }
 
@@ -52,6 +55,7 @@ export class BusinessesController {
     @Query('lat') lat: string,
     @Query('lng') lng: string,
     @Query('radius') radius?: string,
+    @Query('category') category?: string,
   ) {
     const latitude = parseFloat(lat) || 37.7749;
     const longitude = parseFloat(lng) || -122.4194;
@@ -60,6 +64,7 @@ export class BusinessesController {
       latitude,
       longitude,
       radiusKm,
+      category,
     );
     return {
       status: true,

@@ -2,6 +2,7 @@ export class BusinessEntity {
   id: string;
   owner_id: string;
   name: string;
+  category?: string;
   description?: string;
   logo_url?: string;
   address?: string;

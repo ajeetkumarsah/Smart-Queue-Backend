@@ -24,12 +24,12 @@ export class BusinessesService {
     return this.businessesRepository.findByOwnerId(ownerId);
   }
 
-  async searchBusinesses(term: string) {
-    return this.businessesRepository.search(term);
+  async searchBusinesses(term: string, category?: string) {
+    return this.businessesRepository.search(term, category);
   }
 
-  async getNearbyBusinesses(lat: number, lng: number, radiusKm = 50) {
-    return this.businessesRepository.findNearby(lat, lng, radiusKm);
+  async getNearbyBusinesses(lat: number, lng: number, radiusKm = 50, category?: string) {
+    return this.businessesRepository.findNearby(lat, lng, radiusKm, category);
   }
 
   async getById(id: string) {

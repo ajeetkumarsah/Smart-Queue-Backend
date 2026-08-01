@@ -200,6 +200,7 @@ export class DatabaseInitService implements OnModuleInit {
         `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_token TEXT;`,
+        `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS category VARCHAR(100);`,
         `CREATE INDEX IF NOT EXISTS idx_businesses_location ON businesses (latitude, longitude);`,
       ];
       for (const query of addColumnQueries) {
@@ -298,8 +299,8 @@ export class DatabaseInitService implements OnModuleInit {
       if (ownerId) {
         const businessRes = await client.query<{ id: string }>(
           `
-          INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active, category)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           ON CONFLICT DO NOTHING
           RETURNING id
         `,
@@ -313,6 +314,7 @@ export class DatabaseInitService implements OnModuleInit {
             -122.4194,
             true,
             true,
+            'Hospitals',
           ],
         );
 
@@ -377,8 +379,8 @@ export class DatabaseInitService implements OnModuleInit {
         for (const p of parkingBusinesses) {
           const res = await client.query<{ id: string }>(
             `
-            INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO businesses (owner_id, name, description, address, phone, latitude, longitude, is_verified, is_active, category)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT DO NOTHING
             RETURNING id
           `,
@@ -392,6 +394,7 @@ export class DatabaseInitService implements OnModuleInit {
               p.lng,
               true,
               true,
+              'Parking',
             ],
           );
           let pId = res.rows[0]?.id;

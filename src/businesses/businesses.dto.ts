@@ -6,6 +6,10 @@ export class CreateBusinessDto {
 
   @IsString()
   @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
   description?: string;
 
   @IsString()
