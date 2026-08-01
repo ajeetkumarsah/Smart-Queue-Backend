@@ -198,6 +198,7 @@ export class DatabaseInitService implements OnModuleInit {
         `ALTER TABLE services ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;`,
         `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`,
         `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);`,
         `CREATE INDEX IF NOT EXISTS idx_businesses_location ON businesses (latitude, longitude);`,
       ];
       for (const query of addColumnQueries) {

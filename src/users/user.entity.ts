@@ -6,6 +6,7 @@ export interface UserEntity {
   phone?: string;
   role: string;
   is_active: boolean;
+  avatar_url?: string;
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;

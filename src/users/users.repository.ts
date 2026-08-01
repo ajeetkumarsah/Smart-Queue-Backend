@@ -25,6 +25,43 @@ export class UsersRepository extends BaseRepository<UserEntity> {
       user.role || 'CUSTOMER',
     ];
     const result = await this.queryOne(text, values);
-    return result;
+    return result!;
+  }
+
+  async update(id: string, data: Partial<UserEntity>): Promise<UserEntity> {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let i = 1;
+    
+    if (data.full_name !== undefined) {
+      updates.push(`full_name = $${i++}`);
+      values.push(data.full_name);
+    }
+    if (data.phone !== undefined) {
+      updates.push(`phone = $${i++}`);
+      values.push(data.phone);
+    }
+    if (data.avatar_url !== undefined) {
+      updates.push(`avatar_url = $${i++}`);
+      values.push(data.avatar_url);
+    }
+
+    if (updates.length === 0) {
+      const user = await this.findById(id);
+      return user!;
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+
+    const text = `
+      UPDATE ${this.tableName} 
+      SET ${updates.join(', ')} 
+      WHERE id = $${i} 
+      RETURNING *
+    `;
+
+    const result = await this.queryOne(text, values);
+    return result!;
   }
 }
