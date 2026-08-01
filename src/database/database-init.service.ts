@@ -199,6 +199,7 @@ export class DatabaseInitService implements OnModuleInit {
         `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`,
         `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_token TEXT;`,
         `CREATE INDEX IF NOT EXISTS idx_businesses_location ON businesses (latitude, longitude);`,
       ];
       for (const query of addColumnQueries) {

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { UsersRepository } from '../users/users.repository';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 
@@ -13,6 +14,7 @@ export class AuthService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -44,10 +46,47 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
-  private generateTokens(user: any) {
+  async logout(userId: string) {
+    await this.usersRepository.update(userId, { refresh_token: null });
+    return { success: true };
+  }
+
+  async refreshTokens(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+      const user = await this.usersRepository.findById(payload.sub);
+      if (!user || !user.refresh_token) {
+        throw new UnauthorizedException('Access Denied');
+      }
+      const refreshTokenMatches = await argon2.verify(
+        user.refresh_token,
+        refreshToken,
+      );
+      if (!refreshTokenMatches) {
+        throw new UnauthorizedException('Access Denied');
+      }
+      return this.generateTokens(user);
+    } catch (e) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  private async generateTokens(user: any) {
     const payload = { email: user.email, sub: user.id, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION', '30d') as any,
+    });
+
+    const hashedRefreshToken = await argon2.hash(refreshToken);
+    await this.usersRepository.update(user.id, { refresh_token: hashedRefreshToken });
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -57,3 +96,4 @@ export class AuthService {
     };
   }
 }
+

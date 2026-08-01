@@ -1,6 +1,7 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -28,4 +29,30 @@ export class AuthController {
       error: null,
     };
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh')
+  async refreshTokens(@Body('refresh_token') refreshToken: string) {
+    const data = await this.authService.refreshTokens(refreshToken);
+    return {
+      status: true,
+      message: 'Tokens refreshed successfully',
+      data,
+      error: null,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  async logout(@Request() req: any) {
+    await this.authService.logout(req.user.id);
+    return {
+      status: true,
+      message: 'Logged out successfully',
+      data: null,
+      error: null,
+    };
+  }
 }
+

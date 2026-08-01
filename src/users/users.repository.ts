@@ -45,6 +45,10 @@ export class UsersRepository extends BaseRepository<UserEntity> {
       updates.push(`avatar_url = $${i++}`);
       values.push(data.avatar_url);
     }
+    if (data.refresh_token !== undefined) {
+      updates.push(`refresh_token = $${i++}`);
+      values.push(data.refresh_token);
+    }
 
     if (updates.length === 0) {
       const user = await this.findById(id);

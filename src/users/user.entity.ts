@@ -7,6 +7,7 @@ export interface UserEntity {
   role: string;
   is_active: boolean;
   avatar_url?: string;
+  refresh_token?: string;
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;
