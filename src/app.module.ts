@@ -10,6 +10,7 @@ import { BusinessesModule } from './businesses/businesses.module';
 import { ServicesModule } from './services/services.module';
 import { BullModule } from '@nestjs/bullmq';
 import { envValidationSchema } from './config/env.validation';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { envValidationSchema } from './config/env.validation';
     QueuesModule,
     BusinessesModule,
     ServicesModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
