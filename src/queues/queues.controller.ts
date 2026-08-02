@@ -44,6 +44,30 @@ export class QueuesController {
   }
 
   @Roles('CUSTOMER')
+  @Get('my/history')
+  async getQueueHistory(@Request() req: any) {
+    const data = await this.queuesService.getQueueHistory(req.user.id);
+    return {
+      status: true,
+      message: 'Fetched queue history',
+      data,
+      error: null,
+    };
+  }
+
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Get('service/:serviceId/history')
+  async getServiceQueueHistory(@Param('serviceId') serviceId: string) {
+    const data = await this.queuesService.getServiceQueueHistory(serviceId);
+    return {
+      status: true,
+      message: 'Fetched service queue history',
+      data,
+      error: null,
+    };
+  }
+
+  @Roles('CUSTOMER')
   @Post('join')
   async joinQueue(@Request() req: any, @Body('service_id') serviceId: string) {
     const data = await this.queuesService.joinQueue(req.user.id, serviceId);

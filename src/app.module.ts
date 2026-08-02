@@ -12,6 +12,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { envValidationSchema } from './config/env.validation';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { AppConfigModule } from './app-config/app-config.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { AppConfigModule } from './app-config/app-config.module';
     ServicesModule,
     CloudinaryModule,
     AppConfigModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

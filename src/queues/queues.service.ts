@@ -1,18 +1,36 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QueuesRepository } from './queues.repository';
 import { QueueStatus } from './queue.entity';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class QueuesService {
   constructor(
     private readonly queuesRepo: QueuesRepository,
     @InjectQueue('notifications') private readonly notificationsQueue: Queue,
+    @Inject(forwardRef(() => EventsGateway))
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   async joinQueue(userId: string, serviceId: string) {
+    // Check if user is already in an active queue for this service
+    const activeQueues = await this.queuesRepo.findActiveQueuesByUserId(userId);
+    const alreadyInQueue = activeQueues.find(q => q.service_id === serviceId);
+    if (alreadyInQueue) {
+      throw new BadRequestException('You are already in the queue for this service.');
+    }
+
+    // Check service limits (assuming we query max queue size, we could do this via repo)
+    // For now, let the repo handle the join and we'll check the count inside it,
+    // or we can add a method in repo to do it all safely.
+    // Let's rely on the repo's joinQueue to throw if needed, or we implement the check here.
+    
     const queue = await this.queuesRepo.joinQueue(userId, serviceId);
+
+    this.eventsGateway.broadcastToService(serviceId, 'queueJoined', queue);
+    this.eventsGateway.broadcastToUser(userId, 'queueUpdated', queue);
 
     this.notificationsQueue.add('send-notification', {
       userId,
@@ -29,6 +47,14 @@ export class QueuesService {
 
   async getActiveQueuesByService(serviceId: string) {
     return this.queuesRepo.findActiveQueuesByService(serviceId);
+  }
+
+  async getQueueHistory(userId: string) {
+    return this.queuesRepo.findQueueHistoryByUserId(userId);
+  }
+
+  async getServiceQueueHistory(serviceId: string) {
+    return this.queuesRepo.findQueueHistoryByService(serviceId);
   }
 
   async leaveQueue(userId: string, queueId: string) {
@@ -59,6 +85,9 @@ export class QueuesService {
         body,
       }).catch(err => console.error('Failed to add notification to queue:', err));
     }
+
+    this.eventsGateway.broadcastToService(queue.service_id, 'queueUpdated', queue);
+    this.eventsGateway.broadcastToUser(queue.user_id, 'queueUpdated', queue);
 
     return queue;
   }

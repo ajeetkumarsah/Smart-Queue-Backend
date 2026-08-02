@@ -201,6 +201,9 @@ export class DatabaseInitService implements OnModuleInit {
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_token TEXT;`,
         `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS category VARCHAR(100);`,
+        `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS allow_rejoin BOOLEAN DEFAULT true;`,
+        `ALTER TABLE businesses ADD COLUMN IF NOT EXISTS rejoin_grace_period_mins INT DEFAULT 15;`,
+        `ALTER TABLE queues ADD COLUMN IF NOT EXISTS priority INT DEFAULT 0;`,
         `CREATE INDEX IF NOT EXISTS idx_businesses_location ON businesses (latitude, longitude);`,
       ];
       for (const query of addColumnQueries) {
