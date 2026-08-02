@@ -211,8 +211,10 @@ export class DatabaseInitService implements OnModuleInit {
 
       this.logger.log('Database schema ensured.');
 
-      // 4. Seed test users if not present
-      await this.seedTestUsers(client);
+      // 4. Seed test users if explicitly requested via env variable
+      if (process.env.RUN_SEEDERS === 'true') {
+        await this.seedTestUsers(client);
+      }
     } catch (err) {
       this.logger.error('Error initializing database schema or seeding:', err);
     } finally {
