@@ -14,11 +14,11 @@ export class QueuesService {
   async joinQueue(userId: string, serviceId: string) {
     const queue = await this.queuesRepo.joinQueue(userId, serviceId);
 
-    await this.notificationsQueue.add('send-notification', {
+    this.notificationsQueue.add('send-notification', {
       userId,
       title: 'Joined Queue',
       body: `You have successfully joined the queue. Your token is ${queue.token_number}.`,
-    });
+    }).catch(err => console.error('Failed to add notification to queue:', err));
 
     return queue;
   }
@@ -49,11 +49,11 @@ export class QueuesService {
     }
 
     if (title) {
-      await this.notificationsQueue.add('send-notification', {
+      this.notificationsQueue.add('send-notification', {
         userId: queue.user_id,
         title,
         body,
-      });
+      }).catch(err => console.error('Failed to add notification to queue:', err));
     }
 
     return queue;
