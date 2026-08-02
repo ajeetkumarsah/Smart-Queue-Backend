@@ -172,6 +172,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
       [QueueStatus.WAITING]: [
         QueueStatus.READY,
         QueueStatus.CALLED,
+        QueueStatus.ARRIVED,
         QueueStatus.CANCELLED,
         QueueStatus.NO_SHOW,
         QueueStatus.EXPIRED,
