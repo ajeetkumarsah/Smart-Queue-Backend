@@ -29,7 +29,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
     );
     const position = parseInt(countResult[0]?.count || '0', 10) + 1;
     
-    if (position > service.max_queue_size) {
+    if (service.max_queue_size && service.max_queue_size > 0 && position > service.max_queue_size) {
       throw new BadRequestException('Maximum queue size reached');
     }
     const token = `T-${position.toString().padStart(4, '0')}`;

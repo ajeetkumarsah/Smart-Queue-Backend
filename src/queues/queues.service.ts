@@ -15,14 +15,6 @@ export class QueuesService {
   ) {}
 
   async joinQueue(userId: string, serviceId: string) {
-    // Check if user is already in an active queue for this service
-    const activeQueues = await this.queuesRepo.findActiveQueuesByUserId(userId);
-    const alreadyInQueue = activeQueues.find(q => q.service_id === serviceId);
-    if (alreadyInQueue) {
-      return alreadyInQueue;
-    }
-
-    // Check service limits (assuming we query max queue size, we could do this via repo)
     // For now, let the repo handle the join and we'll check the count inside it,
     // or we can add a method in repo to do it all safely.
     // Let's rely on the repo's joinQueue to throw if needed, or we implement the check here.
