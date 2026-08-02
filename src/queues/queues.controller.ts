@@ -31,6 +31,18 @@ export class QueuesController {
     };
   }
 
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Get('service/:serviceId')
+  async getServiceQueues(@Param('serviceId') serviceId: string) {
+    const data = await this.queuesService.getActiveQueuesByService(serviceId);
+    return {
+      status: true,
+      message: 'Fetched service queues',
+      data,
+      error: null,
+    };
+  }
+
   @Roles('CUSTOMER')
   @Post('join')
   async joinQueue(@Request() req: any, @Body('service_id') serviceId: string) {

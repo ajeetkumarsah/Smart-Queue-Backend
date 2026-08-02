@@ -49,6 +49,23 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
     return results;
   }
 
+  async findActiveQueuesByService(serviceId: string): Promise<any[]> {
+    const text = `
+      SELECT q.*, u.full_name as user_name, u.email as user_email
+      FROM ${this.tableName} q
+      JOIN users u ON q.user_id = u.id
+      WHERE q.service_id = $1 AND q.status IN ($2, $3, $4)
+      ORDER BY q.position ASC
+    `;
+    const results = await this.query(text, [
+      serviceId,
+      QueueStatus.WAITING,
+      QueueStatus.CALLED,
+      QueueStatus.SERVING,
+    ]);
+    return results;
+  }
+
   async updateStatus(
     queueId: string,
     newStatus: QueueStatus,

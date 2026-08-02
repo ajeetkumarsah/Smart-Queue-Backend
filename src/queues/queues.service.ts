@@ -27,6 +27,10 @@ export class QueuesService {
     return this.queuesRepo.findActiveQueuesByUserId(userId);
   }
 
+  async getActiveQueuesByService(serviceId: string) {
+    return this.queuesRepo.findActiveQueuesByService(serviceId);
+  }
+
   async leaveQueue(userId: string, queueId: string) {
     const queue = await this.queuesRepo.findById(queueId);
     if (!queue || queue.user_id !== userId) {
