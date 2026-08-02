@@ -19,7 +19,7 @@ export class QueuesService {
     const activeQueues = await this.queuesRepo.findActiveQueuesByUserId(userId);
     const alreadyInQueue = activeQueues.find(q => q.service_id === serviceId);
     if (alreadyInQueue) {
-      throw new BadRequestException('You are already in the queue for this service.');
+      return alreadyInQueue;
     }
 
     // Check service limits (assuming we query max queue size, we could do this via repo)
