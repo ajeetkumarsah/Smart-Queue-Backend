@@ -51,7 +51,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
 
   async findActiveQueuesByUserId(userId: string): Promise<any[]> {
     const text = `
-      SELECT q.*, s.name as service_name, b.name as business_name, 
+      SELECT q.*, s.name as service_name, b.name as business_name, b.logo_url as business_image_url, 
         (
           SELECT COUNT(*) FROM ${this.tableName} q2 
           WHERE q2.service_id = q.service_id 
@@ -131,7 +131,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
 
   async findQueueHistoryByUserId(userId: string): Promise<any[]> {
     const text = `
-      SELECT q.*, s.name as service_name, b.name as business_name, s.estimated_wait_time_mins
+      SELECT q.*, s.name as service_name, b.name as business_name, b.logo_url as business_image_url, s.estimated_wait_time_mins
       FROM ${this.tableName} q
       JOIN services s ON q.service_id = s.id
       JOIN businesses b ON s.business_id = b.id
