@@ -34,8 +34,9 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         const payload = this.jwtService.verify(token);
         client.data.user = payload;
         // Automatically join the user to their own private room
-        client.join(`user_${payload.id}`);
-        this.logger.log(`Client connected and joined user_${payload.id}: ${client.id}`);
+        const userId = payload.sub || payload.id;
+        client.join(`user_${userId}`);
+        this.logger.log(`Client connected and joined user_${userId}: ${client.id}`);
       } else {
         // Optionally allow unauthenticated connections, but log them
         this.logger.log(`Unauthenticated client connected: ${client.id}`);
