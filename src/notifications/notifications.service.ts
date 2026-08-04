@@ -11,12 +11,13 @@ export class NotificationsService {
   ) {}
 
   async testPushNotification(userId: string) {
-    await this.notificationsQueue.add('send-notification', {
+    this.notificationsQueue.add('send-notification', {
       userId,
       title: 'Test Notification',
       body: 'This is a test notification generated from the backend.',
       type: 'SYSTEM',
-    });
+    }).catch(err => console.error('Failed to add test notification:', err));
+    
     return { success: true, message: 'Test notification queued' };
   }
 
