@@ -62,12 +62,36 @@ export class QueuesService {
 
     let title = '';
     let body = '';
-    if (newStatus === QueueStatus.CALLED) {
-      title = 'It is your turn!';
-      body = `Token ${queue.token_number} is now being called.`;
-    } else if (newStatus === QueueStatus.COMPLETED) {
-      title = 'Service Completed';
-      body = `Thank you for visiting! Please leave your feedback.`;
+    
+    switch (newStatus) {
+      case QueueStatus.READY:
+        title = 'You are next!';
+        body = `Please get ready. Token ${queue.token_number} will be called soon.`;
+        break;
+      case QueueStatus.CALLED:
+        title = 'It is your turn!';
+        body = `Token ${queue.token_number} is now being called.`;
+        break;
+      case QueueStatus.SERVING:
+        title = 'Service Started';
+        body = `You are now being served.`;
+        break;
+      case QueueStatus.COMPLETED:
+        title = 'Service Completed';
+        body = `Thank you for visiting! Please leave your feedback.`;
+        break;
+      case QueueStatus.CANCELLED:
+        title = 'Queue Cancelled';
+        body = `Your ticket ${queue.token_number} has been cancelled.`;
+        break;
+      case QueueStatus.NO_SHOW:
+        title = 'Missed Turn';
+        body = `You missed your turn for token ${queue.token_number}.`;
+        break;
+      case QueueStatus.SKIPPED:
+        title = 'Turn Skipped';
+        body = `Your turn was skipped. You may still be called shortly.`;
+        break;
     }
 
     if (title) {
