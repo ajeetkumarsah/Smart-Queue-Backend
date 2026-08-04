@@ -12,20 +12,6 @@ export class NotificationsService {
     private readonly eventsGateway: EventsGateway,
   ) {}
 
-  async testPushNotification(userId: string) {
-    // Bypass BullMQ for testing because the remote Redis instance is inaccessible locally
-    const notification = await this.notificationsRepo.create({
-      user_id: userId,
-      title: 'Test Notification',
-      body: 'This is a test notification generated from the backend.',
-      type: 'SYSTEM',
-    });
-
-    this.eventsGateway.broadcastToUser(userId, 'notification', notification);
-    
-    return { success: true, message: 'Test notification queued and broadcasted directly' };
-  }
-
   async getUserNotifications(userId: string) {
     return this.notificationsRepo.findByUserId(userId);
   }
