@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, OnModuleInit, Inject, Logger } from '@nestjs/common';
-import { Pool, PoolClient } from 'pg';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import { Pool, PoolClient } from 'pg';
 import { PG_CONNECTION } from './database.constants';
 
 @Injectable()
@@ -274,7 +274,7 @@ export class DatabaseInitService implements OnModuleInit {
         SET full_name = EXCLUDED.full_name, role = EXCLUDED.role
       `,
         [
-          'John Customer',
+          'Ajeet Kumarv Sah',
           'customer@test.com',
           '+10000000002',
           defaultPasswordHash,
