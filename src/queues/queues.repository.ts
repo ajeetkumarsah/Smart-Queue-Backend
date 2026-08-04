@@ -46,7 +46,34 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
       position,
       QueueStatus.WAITING,
     ]);
-    return result;
+    return this.findByIdWithDetails(result.id);
+  }
+
+  async findByIdWithDetails(queueId: string): Promise<any> {
+    const text = `
+      SELECT q.*, s.name as service_name, b.name as business_name, b.logo_url as business_image_url, 
+        (
+          SELECT COUNT(*) FROM ${this.tableName} q2 
+          WHERE q2.service_id = q.service_id 
+            AND q2.position < q.position 
+            AND q2.status IN ($2, $3, $4, $5, $6, $7)
+        ) * s.estimated_wait_time_mins as estimated_wait_time_mins,
+        u.full_name as user_name, u.email as user_email
+      FROM ${this.tableName} q
+      JOIN services s ON q.service_id = s.id
+      JOIN businesses b ON s.business_id = b.id
+      JOIN users u ON q.user_id = u.id
+      WHERE q.id = $1
+    `;
+    return this.queryOne(text, [
+      queueId,
+      QueueStatus.CREATED,
+      QueueStatus.WAITING,
+      QueueStatus.READY,
+      QueueStatus.ARRIVED,
+      QueueStatus.CALLED,
+      QueueStatus.SERVING,
+    ]);
   }
 
   async findActiveQueuesByUserId(userId: string): Promise<any[]> {
@@ -126,7 +153,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
 
     const text = `UPDATE ${this.tableName} SET status = $1 ${timestampField} WHERE id = $2 RETURNING *`;
     const result = await this.queryOne(text, [newStatus, queueId]);
-    return result;
+    return this.findByIdWithDetails(result.id);
   }
 
   async findQueueHistoryByUserId(userId: string): Promise<any[]> {
