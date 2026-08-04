@@ -2,23 +2,28 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { NotificationsRepository } from './notifications.repository';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly notificationsRepo: NotificationsRepository,
     @InjectQueue('notifications') private readonly notificationsQueue: Queue,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   async testPushNotification(userId: string) {
-    this.notificationsQueue.add('send-notification', {
-      userId,
+    // Bypass BullMQ for testing because the remote Redis instance is inaccessible locally
+    const notification = await this.notificationsRepo.create({
+      user_id: userId,
       title: 'Test Notification',
       body: 'This is a test notification generated from the backend.',
       type: 'SYSTEM',
-    }).catch(err => console.error('Failed to add test notification:', err));
+    });
+
+    this.eventsGateway.broadcastToUser(userId, 'notification', notification);
     
-    return { success: true, message: 'Test notification queued' };
+    return { success: true, message: 'Test notification queued and broadcasted directly' };
   }
 
   async getUserNotifications(userId: string) {

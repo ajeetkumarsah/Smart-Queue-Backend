@@ -5,9 +5,12 @@ import { NotificationsRepository } from './notifications.repository';
 import { BullModule } from '@nestjs/bullmq';
 import { DatabaseModule } from '../database/database.module';
 
+import { EventsModule } from '../events/events.module';
+
 @Module({
   imports: [
     DatabaseModule,
+    EventsModule,
     BullModule.registerQueue({
       name: 'notifications',
     }),
