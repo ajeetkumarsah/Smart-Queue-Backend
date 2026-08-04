@@ -13,6 +13,7 @@ import { envValidationSchema } from './config/env.validation';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { AppConfigModule } from './app-config/app-config.module';
 import { EventsModule } from './events/events.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { EventsModule } from './events/events.module';
     CloudinaryModule,
     AppConfigModule,
     EventsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
