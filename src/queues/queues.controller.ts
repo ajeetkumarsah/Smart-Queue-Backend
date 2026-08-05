@@ -91,6 +91,18 @@ export class QueuesController {
     };
   }
 
+  @Roles('CUSTOMER')
+  @Post(':id/rejoin')
+  async rejoinQueue(@Request() req: any, @Param('id') id: string) {
+    const data = await this.queuesService.rejoinQueue(req.user.id, id);
+    return {
+      status: true,
+      message: 'Re-joined queue successfully',
+      data,
+      error: null,
+    };
+  }
+
   @Roles('BUSINESS_OWNER', 'SUPER_ADMIN', 'OPERATOR')
   @Patch(':id/status')
   async updateStatus(

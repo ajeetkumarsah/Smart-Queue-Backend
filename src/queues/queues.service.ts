@@ -59,6 +59,27 @@ export class QueuesService {
     return this.updateStatus(queueId, QueueStatus.CANCELLED);
   }
 
+  async rejoinQueue(userId: string, queueId: string) {
+    const queue = await this.queuesRepo.findById(queueId);
+    if (!queue || queue.user_id !== userId) {
+      throw new BadRequestException('Queue not found or unauthorized');
+    }
+    if (queue.status !== QueueStatus.NO_SHOW) {
+      throw new BadRequestException('You can only re-join if you were marked as a no-show');
+    }
+
+    const updatedTime = new Date(queue.updated_at);
+    const now = new Date();
+    const diffMins = (now.getTime() - updatedTime.getTime()) / (1000 * 60);
+
+    if (diffMins > 15) {
+      throw new BadRequestException('Grace period of 15 minutes has expired');
+    }
+
+    // Keep the same token number, but just update the status back to WAITING
+    return this.updateStatus(queueId, QueueStatus.WAITING);
+  }
+
   async updateStatus(queueId: string, newStatus: QueueStatus, ownerId?: string) {
     if (ownerId) {
       const queueDetails = await this.queuesRepo.findByIdWithDetails(queueId);
@@ -123,6 +144,20 @@ export class QueuesService {
 
     this.eventsGateway.broadcastToService(queue.service_id, 'queueUpdated', queue);
     this.eventsGateway.broadcastToUser(queue.user_id, 'queueUpdated', queue);
+
+    // Notify approaching customers (next 2 in line)
+    if ([QueueStatus.CALLED, QueueStatus.COMPLETED, QueueStatus.NO_SHOW, QueueStatus.CANCELLED, QueueStatus.SKIPPED].includes(newStatus)) {
+      const activeQueues = await this.queuesRepo.findActiveQueuesByService(queue.service_id);
+      const waiting = activeQueues.filter(q => q.status === QueueStatus.WAITING);
+      
+      const approaching = waiting.slice(0, 2);
+      approaching.forEach((app, index) => {
+        this.eventsGateway.broadcastToUser(app.user_id, 'queueApproaching', {
+          queue: app,
+          position: index + 1,
+        });
+      });
+    }
 
     return queue;
   }

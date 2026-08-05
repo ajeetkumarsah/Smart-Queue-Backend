@@ -7,35 +7,98 @@ import { PG_CONNECTION } from '../database/database.constants';
 export class AdminService {
   constructor(@Inject(PG_CONNECTION) private readonly pool: Pool) {}
 
+  private calculateGrowth(cur: number, prev: number): number {
+    if (prev === 0) return cur > 0 ? 100 : 0;
+    return Math.round(((cur - prev) / prev) * 100);
+  }
+
   async getPlatformStats() {
-    const usersCountQuery = `SELECT COUNT(*) FROM users`;
-    const businessesCountQuery = `SELECT COUNT(*) FROM businesses`;
-    const queuesCountQuery = `SELECT COUNT(*) FROM queues WHERE status = 'WAITING' OR status = 'IN_PROGRESS'`;
-    const subsCountQuery = `SELECT COUNT(*) FROM subscriptions WHERE is_active = true`;
+    const usersQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as cur_30,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '60 days' AND created_at < CURRENT_DATE - INTERVAL '30 days') as prev_30,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as cur_7,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '14 days' AND created_at < CURRENT_DATE - INTERVAL '7 days') as prev_7
+      FROM users
+    `;
+    const businessesQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as cur_30,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '60 days' AND created_at < CURRENT_DATE - INTERVAL '30 days') as prev_30,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as cur_7,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '14 days' AND created_at < CURRENT_DATE - INTERVAL '7 days') as prev_7
+      FROM businesses
+    `;
+    const queuesQuery = `
+      SELECT 
+        COUNT(*) FILTER (WHERE status = 'WAITING' OR status = 'IN_PROGRESS') as total,
+        COUNT(*) FILTER (WHERE joined_at >= CURRENT_DATE - INTERVAL '30 days') as cur_30,
+        COUNT(*) FILTER (WHERE joined_at >= CURRENT_DATE - INTERVAL '60 days' AND joined_at < CURRENT_DATE - INTERVAL '30 days') as prev_30,
+        COUNT(*) FILTER (WHERE joined_at >= CURRENT_DATE - INTERVAL '7 days') as cur_7,
+        COUNT(*) FILTER (WHERE joined_at >= CURRENT_DATE - INTERVAL '14 days' AND joined_at < CURRENT_DATE - INTERVAL '7 days') as prev_7
+      FROM queues
+    `;
+    const subsQuery = `
+      SELECT 
+        COUNT(*) FILTER (WHERE is_active = true) as total,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as cur_30,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '60 days' AND created_at < CURRENT_DATE - INTERVAL '30 days') as prev_30,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as cur_7,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '14 days' AND created_at < CURRENT_DATE - INTERVAL '7 days') as prev_7
+      FROM subscriptions
+    `;
 
     const [usersRes, businessesRes, queuesRes, subsRes] = await Promise.all([
-      this.pool.query(usersCountQuery),
-      this.pool.query(businessesCountQuery),
-      this.pool.query(queuesCountQuery),
-      this.pool.query(subsCountQuery),
+      this.pool.query(usersQuery),
+      this.pool.query(businessesQuery),
+      this.pool.query(queuesQuery),
+      this.pool.query(subsQuery),
     ]);
 
+    const u = usersRes.rows[0];
+    const b = businessesRes.rows[0];
+    const q = queuesRes.rows[0];
+    const s = subsRes.rows[0];
+
     return {
-      total_users: parseInt(usersRes.rows[0].count, 10),
-      total_businesses: parseInt(businessesRes.rows[0].count, 10),
-      active_queues: parseInt(queuesRes.rows[0].count, 10),
-      active_subscriptions: parseInt(subsRes.rows[0].count, 10),
+      total_users: parseInt(u.total, 10) || 0,
+      users_trend: this.calculateGrowth(parseInt(u.cur_30, 10) || 0, parseInt(u.prev_30, 10) || 0),
+      users_percentage: this.calculateGrowth(parseInt(u.cur_7, 10) || 0, parseInt(u.prev_7, 10) || 0),
+
+      total_businesses: parseInt(b.total, 10) || 0,
+      businesses_trend: this.calculateGrowth(parseInt(b.cur_30, 10) || 0, parseInt(b.prev_30, 10) || 0),
+      businesses_percentage: this.calculateGrowth(parseInt(b.cur_7, 10) || 0, parseInt(b.prev_7, 10) || 0),
+
+      active_queues: parseInt(q.total, 10) || 0,
+      queues_trend: this.calculateGrowth(parseInt(q.cur_30, 10) || 0, parseInt(q.prev_30, 10) || 0),
+      queues_percentage: this.calculateGrowth(parseInt(q.cur_7, 10) || 0, parseInt(q.prev_7, 10) || 0),
+
+      active_subscriptions: parseInt(s.total, 10) || 0,
+      subscriptions_trend: this.calculateGrowth(parseInt(s.cur_30, 10) || 0, parseInt(s.prev_30, 10) || 0),
+      subscriptions_percentage: this.calculateGrowth(parseInt(s.cur_7, 10) || 0, parseInt(s.prev_7, 10) || 0),
     };
   }
 
-  async getChartData() {
-    // Get last 7 days of user signups
+  async getChartData(period: string = '7d') {
+    let interval = '6 days';
+    let dateFormat = 'DD';
+    
+    if (period === '30d') {
+      interval = '29 days';
+      dateFormat = 'DD Mon';
+    } else if (period === '1y') {
+      interval = '1 year';
+      dateFormat = 'Mon YYYY';
+    }
+
     const chartQuery = `
-      SELECT TO_CHAR(created_at, 'DD') as name, COUNT(*) as value
+      SELECT TO_CHAR(created_at, '${dateFormat}') as name, COUNT(*) as value
       FROM users
-      WHERE created_at >= CURRENT_DATE - INTERVAL '6 days'
-      GROUP BY TO_CHAR(created_at, 'DD'), DATE(created_at)
-      ORDER BY DATE(created_at) ASC
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${interval}'
+      GROUP BY TO_CHAR(created_at, '${dateFormat}'), DATE_TRUNC('${period === '1y' ? 'month' : 'day'}', created_at)
+      ORDER BY DATE_TRUNC('${period === '1y' ? 'month' : 'day'}', created_at) ASC
     `;
 
     // Get 5 recent activities (latest users/businesses created)
@@ -76,19 +139,96 @@ export class AdminService {
     };
   }
 
-  async getAllUsers(page: number = 1, limit: number = 20) {
+  async getAllActivities(page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
     const query = `
-      SELECT id, email, full_name, role, phone AS phone_number, created_at
+      SELECT id, full_name as title, 'Customer Registration' as type, created_at as date, 'red' as color
       FROM users
-      ORDER BY created_at DESC
+      WHERE role = 'CUSTOMER'
+      UNION ALL
+      SELECT b.id, b.name as title, 'Business Signup' as type, b.created_at as date, 'orange' as color
+      FROM businesses b
+      ORDER BY date DESC
       LIMIT $1 OFFSET $2
     `;
-    const countQuery = `SELECT COUNT(*) FROM users`;
+    const countQuery = `
+      SELECT SUM(count) as total FROM (
+        SELECT COUNT(*) as count FROM users WHERE role = 'CUSTOMER'
+        UNION ALL
+        SELECT COUNT(*) as count FROM businesses
+      ) sub
+    `;
 
     const [dataRes, countRes] = await Promise.all([
       this.pool.query(query, [limit, offset]),
       this.pool.query(countQuery),
+    ]);
+
+    const formattedData = dataRes.rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      date: new Date(row.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+      type: row.type,
+      color: row.color,
+    }));
+
+    return {
+      data: formattedData,
+      meta: {
+        total: parseInt(countRes.rows[0].total, 10),
+        page,
+        limit,
+      },
+    };
+  }
+
+  async getAllUsers(page: number = 1, limit: number = 20, period?: string, role?: string, status?: string, search?: string) {
+    const offset = (page - 1) * limit;
+    
+    let whereClauses: string[] = [];
+    let queryValues: any[] = [];
+    let paramIdx = 1;
+
+    if (period === 'today') {
+      whereClauses.push(`created_at >= CURRENT_DATE`);
+    } else if (period === 'weekly') {
+      whereClauses.push(`created_at >= CURRENT_DATE - INTERVAL '7 days'`);
+    } else if (period === 'monthly') {
+      whereClauses.push(`created_at >= CURRENT_DATE - INTERVAL '30 days'`);
+    }
+
+    if (role && role !== 'ALL') {
+      whereClauses.push(`role = $${paramIdx++}`);
+      queryValues.push(role);
+    }
+
+    if (status && status !== 'ALL') {
+      const isActive = status === 'ACTIVE';
+      whereClauses.push(`is_active = $${paramIdx++}`);
+      queryValues.push(isActive);
+    }
+
+    if (search && search.trim() !== '') {
+      whereClauses.push(`(full_name ILIKE $${paramIdx} OR email ILIKE $${paramIdx} OR phone ILIKE $${paramIdx})`);
+      queryValues.push(`%${search.trim()}%`);
+      paramIdx++;
+    }
+    
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const countQuery = `SELECT COUNT(*) FROM users ${whereClause}`;
+    
+    const dataValues = [...queryValues, limit, offset];
+    const query = `
+      SELECT id, email, full_name, role, phone AS phone_number, created_at, is_active
+      FROM users
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${paramIdx++} OFFSET $${paramIdx++}
+    `;
+
+    const [dataRes, countRes] = await Promise.all([
+      this.pool.query(query, dataValues),
+      this.pool.query(countQuery, queryValues),
     ]);
 
     return {
@@ -101,20 +241,47 @@ export class AdminService {
     };
   }
 
-  async getAllBusinesses(page: number = 1, limit: number = 20) {
+  async getAllBusinesses(page: number = 1, limit: number = 20, status?: string, search?: string) {
     const offset = (page - 1) * limit;
+    
+    let whereClauses: string[] = [];
+    let queryValues: any[] = [];
+    let paramIdx = 1;
+
+    if (status && status !== 'ALL') {
+      if (status === 'VERIFIED') {
+        whereClauses.push(`b.is_verified = true`);
+        whereClauses.push(`b.is_active = true`);
+      } else if (status === 'PENDING') {
+        whereClauses.push(`b.is_verified = false`);
+        whereClauses.push(`b.is_active = true`);
+      } else if (status === 'SUSPENDED') {
+        whereClauses.push(`b.is_active = false`);
+      }
+    }
+
+    if (search && search.trim() !== '') {
+      whereClauses.push(`(b.name ILIKE $${paramIdx} OR u.email ILIKE $${paramIdx} OR b.phone ILIKE $${paramIdx} OR u.full_name ILIKE $${paramIdx})`);
+      queryValues.push(`%${search.trim()}%`);
+      paramIdx++;
+    }
+
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const countQuery = `SELECT COUNT(*) FROM businesses b JOIN users u ON b.owner_id = u.id ${whereClause}`;
+
+    const dataValues = [...queryValues, limit, offset];
     const query = `
-      SELECT b.id, b.name, u.email, b.phone, b.is_verified, b.created_at, u.full_name as owner_name
+      SELECT b.id, b.name, u.email, b.phone, b.is_verified, b.created_at, u.full_name as owner_name, b.is_active
       FROM businesses b
       JOIN users u ON b.owner_id = u.id
+      ${whereClause}
       ORDER BY b.created_at DESC
-      LIMIT $1 OFFSET $2
+      LIMIT $${paramIdx++} OFFSET $${paramIdx++}
     `;
-    const countQuery = `SELECT COUNT(*) FROM businesses`;
 
     const [dataRes, countRes] = await Promise.all([
-      this.pool.query(query, [limit, offset]),
-      this.pool.query(countQuery),
+      this.pool.query(query, dataValues),
+      this.pool.query(countQuery, queryValues),
     ]);
 
     return {
@@ -264,27 +431,48 @@ export class AdminService {
   }
 
   async deleteBusiness(businessId: string) {
-    const query = `UPDATE businesses SET is_active = false, deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id`;
+    const query = `DELETE FROM businesses WHERE id = $1 RETURNING id`;
     const res = await this.pool.query(query, [businessId]);
     if (res.rowCount === 0) throw new NotFoundException('Business not found');
     return true;
   }
 
   // --- Services CRUD ---
-  async getAllServices(page: number = 1, limit: number = 20) {
+  async getAllServices(page: number = 1, limit: number = 20, status?: string, search?: string) {
     const offset = (page - 1) * limit;
+    
+    let whereClauses: string[] = [];
+    let queryValues: any[] = [];
+    let paramIdx = 1;
+
+    if (status && status !== 'ALL') {
+      const isActive = status === 'ACTIVE';
+      whereClauses.push(`s.is_active = $${paramIdx++}`);
+      queryValues.push(isActive);
+    }
+
+    if (search && search.trim() !== '') {
+      whereClauses.push(`(s.name ILIKE $${paramIdx} OR b.name ILIKE $${paramIdx})`);
+      queryValues.push(`%${search.trim()}%`);
+      paramIdx++;
+    }
+
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const countQuery = `SELECT COUNT(*) FROM services s JOIN businesses b ON s.business_id = b.id ${whereClause}`;
+
+    const dataValues = [...queryValues, limit, offset];
     const query = `
       SELECT s.id, s.name, s.estimated_wait_time_mins, s.is_active, s.created_at, b.name as business_name, b.id as business_id
       FROM services s
       JOIN businesses b ON s.business_id = b.id
+      ${whereClause}
       ORDER BY s.created_at DESC
-      LIMIT $1 OFFSET $2
+      LIMIT $${paramIdx++} OFFSET $${paramIdx++}
     `;
-    const countQuery = `SELECT COUNT(*) FROM services`;
 
     const [dataRes, countRes] = await Promise.all([
-      this.pool.query(query, [limit, offset]),
-      this.pool.query(countQuery),
+      this.pool.query(query, dataValues),
+      this.pool.query(countQuery, queryValues),
     ]);
 
     return {
@@ -311,6 +499,27 @@ export class AdminService {
     `;
     const res = await this.pool.query(query, [data.business_id, data.name, data.estimated_wait_time_mins]);
     return res.rows[0];
+  }
+
+  async updateServiceStatus(serviceId: string, isActive: boolean) {
+    const query = `
+      UPDATE services
+      SET is_active = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING id, name, is_active
+    `;
+    const res = await this.pool.query(query, [isActive, serviceId]);
+    if (res.rowCount === 0) {
+      throw new NotFoundException('Service not found');
+    }
+    return res.rows[0];
+  }
+
+  async deleteService(serviceId: string) {
+    const query = `UPDATE services SET is_active = false, deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id`;
+    const res = await this.pool.query(query, [serviceId]);
+    if (res.rowCount === 0) throw new NotFoundException('Service not found');
+    return true;
   }
 
   // --- Subscriptions CRUD ---

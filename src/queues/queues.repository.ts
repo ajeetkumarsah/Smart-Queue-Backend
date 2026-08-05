@@ -88,7 +88,10 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
       FROM ${this.tableName} q
       JOIN services s ON q.service_id = s.id
       JOIN businesses b ON s.business_id = b.id
-      WHERE q.user_id = $1 AND q.status IN ($2, $3, $4, $5, $6, $7)
+      WHERE q.user_id = $1 AND (
+        q.status IN ($2, $3, $4, $5, $6, $7)
+        OR (q.status = $8 AND q.updated_at >= NOW() - INTERVAL '15 minutes')
+      )
       ORDER BY q.created_at DESC
     `;
     const results = await this.query(text, [
@@ -99,6 +102,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
       QueueStatus.ARRIVED,
       QueueStatus.CALLED,
       QueueStatus.SERVING,
+      QueueStatus.NO_SHOW,
     ]);
     return results;
   }

@@ -31,8 +31,8 @@ export class AdminController {
   }
 
   @Get('chart-data')
-  async getChartData() {
-    const data = await this.adminService.getChartData();
+  async getChartData(@Query('period') period: string = '7d') {
+    const data = await this.adminService.getChartData(period);
     return {
       status: true,
       message: 'Chart data fetched successfully',
@@ -40,14 +40,35 @@ export class AdminController {
     };
   }
 
+  @Get('activities')
+  async getActivities(@Query('page') page: string, @Query('limit') limit: string) {
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 20;
+    const data = await this.adminService.getAllActivities(pageNum, limitNum);
+    return {
+      status: true,
+      message: 'Activities fetched successfully',
+      data: data.data,
+      meta: data.meta,
+    };
+  }
+
   @Get('users')
   async getUsers(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
+    @Query('period') period?: string,
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
   ) {
     const data = await this.adminService.getAllUsers(
       parseInt(page, 10),
       parseInt(limit, 10),
+      period,
+      role,
+      status,
+      search
     );
     return {
       status: true,
@@ -93,10 +114,14 @@ export class AdminController {
   async getBusinesses(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
+    @Query('status') status?: string,
+    @Query('search') search?: string,
   ) {
     const data = await this.adminService.getAllBusinesses(
       parseInt(page, 10),
       parseInt(limit, 10),
+      status,
+      search
     );
     return {
       status: true,
@@ -194,10 +219,14 @@ export class AdminController {
   async getServices(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
+    @Query('status') status?: string,
+    @Query('search') search?: string,
   ) {
     const data = await this.adminService.getAllServices(
       parseInt(page, 10),
       parseInt(limit, 10),
+      status,
+      search
     );
     return {
       status: true,
@@ -214,6 +243,28 @@ export class AdminController {
       status: true,
       message: 'Service created successfully',
       data,
+    };
+  }
+
+  @Patch('services/:id/status')
+  async updateServiceStatus(
+    @Param('id') id: string,
+    @Body('is_active') isActive: boolean,
+  ) {
+    const data = await this.adminService.updateServiceStatus(id, isActive);
+    return {
+      status: true,
+      message: 'Service status updated successfully',
+      data,
+    };
+  }
+
+  @Delete('services/:id')
+  async deleteService(@Param('id') id: string) {
+    await this.adminService.deleteService(id);
+    return {
+      status: true,
+      message: 'Service deleted successfully',
     };
   }
 }
