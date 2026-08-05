@@ -17,6 +17,6 @@ import { EventsModule } from '../events/events.module';
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService, NotificationsRepository],
-  exports: [NotificationsRepository], // Export for QueueProcessor
+  exports: [NotificationsRepository, NotificationsService],
 })
 export class NotificationsModule {}

@@ -30,4 +30,16 @@ export class ServicesService {
   async findByBusinessId(businessId: string) {
     return this.servicesRepository.findByBusinessId(businessId);
   }
+
+  async updateStatus(ownerId: string, serviceId: string, isActive: boolean) {
+    const service = await this.servicesRepository.findById(serviceId);
+    if (!service) {
+      throw new ForbiddenException('Service not found');
+    }
+    const business = await this.businessesService.getById(service.business_id);
+    if (business.owner_id !== ownerId) {
+      throw new ForbiddenException('You do not own this business');
+    }
+    return this.servicesRepository.updateStatus(serviceId, isActive);
+  }
 }

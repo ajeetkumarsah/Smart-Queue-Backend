@@ -28,4 +28,18 @@ export class ServicesRepository extends BaseRepository<ServiceEntity> {
     ]);
     return result;
   }
+  async updateStatus(id: string, isActive: boolean): Promise<ServiceEntity> {
+    const text = `
+      UPDATE ${this.tableName}
+      SET is_active = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND deleted_at IS NULL
+      RETURNING *
+    `;
+    return this.queryOne(text, [isActive, id]);
+  }
+
+  async findById(id: string): Promise<ServiceEntity> {
+    const text = `SELECT * FROM ${this.tableName} WHERE id = $1 AND deleted_at IS NULL`;
+    return this.queryOne(text, [id]);
+  }
 }

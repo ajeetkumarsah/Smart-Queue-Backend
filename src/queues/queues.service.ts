@@ -1,15 +1,14 @@
 import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { QueuesRepository } from './queues.repository';
 import { QueueStatus } from './queue.entity';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class QueuesService {
   constructor(
     private readonly queuesRepo: QueuesRepository,
-    @InjectQueue('notifications') private readonly notificationsQueue: Queue,
+    private readonly notificationsService: NotificationsService,
     @Inject(forwardRef(() => EventsGateway))
     private readonly eventsGateway: EventsGateway,
   ) {}
@@ -24,11 +23,12 @@ export class QueuesService {
     this.eventsGateway.broadcastToService(serviceId, 'queueJoined', queue);
     this.eventsGateway.broadcastToUser(userId, 'queueUpdated', queue);
 
-    this.notificationsQueue.add('send-notification', {
+    this.notificationsService.sendPushNotification(
       userId,
-      title: 'Joined Queue',
-      body: `You have successfully joined the queue. Your token is ${queue.token_number}.`,
-    }).catch(err => console.error('Failed to add notification to queue:', err));
+      'Joined Queue',
+      `You have successfully joined the queue. Your token is ${queue.token_number}.`,
+      'QUEUE_UPDATE'
+    );
 
     return queue;
   }
@@ -95,11 +95,12 @@ export class QueuesService {
     }
 
     if (title) {
-      this.notificationsQueue.add('send-notification', {
-        userId: queue.user_id,
+      this.notificationsService.sendPushNotification(
+        queue.user_id,
         title,
         body,
-      }).catch(err => console.error('Failed to add notification to queue:', err));
+        'QUEUE_UPDATE'
+      );
     }
 
     this.eventsGateway.broadcastToService(queue.service_id, 'queueUpdated', queue);

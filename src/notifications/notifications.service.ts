@@ -12,6 +12,21 @@ export class NotificationsService {
     private readonly eventsGateway: EventsGateway,
   ) {}
 
+  async sendPushNotification(userId: string, title: string, body: string, type: string = 'SYSTEM') {
+    try {
+      const notification = await this.notificationsRepo.create({
+        user_id: userId,
+        title,
+        body,
+        type,
+      });
+
+      this.eventsGateway.broadcastToUser(userId, 'notification', notification);
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
+    }
+  }
+
   async getUserNotifications(userId: string) {
     return this.notificationsRepo.findByUserId(userId);
   }

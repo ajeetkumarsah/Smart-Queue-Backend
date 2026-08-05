@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   Req,
@@ -30,5 +31,17 @@ export class ServicesController {
   async getByBusinessId(@Param('businessId') businessId: string) {
     const data = await this.servicesService.findByBusinessId(businessId);
     return { status: true, message: 'Services fetched', data, error: null };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Patch(':id/status')
+  async updateStatus(
+    @Req() req,
+    @Param('id') id: string,
+    @Body('is_active') isActive: boolean,
+  ) {
+    const data = await this.servicesService.updateStatus(req.user.id, id, isActive);
+    return { status: true, message: 'Service status updated', data, error: null };
   }
 }
