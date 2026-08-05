@@ -1,10 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool } from 'pg';
 import { SubscriptionEntity } from './subscriptions.entity';
+import { PG_CONNECTION } from '../database/database.constants';
 
 @Injectable()
 export class SubscriptionsRepository {
-  constructor(@Inject('DATABASE_POOL') private readonly pool: Pool) {}
+  constructor(@Inject(PG_CONNECTION) private readonly pool: Pool) {}
 
   async findActiveByUserId(userId: string): Promise<SubscriptionEntity | null> {
     const text = `
