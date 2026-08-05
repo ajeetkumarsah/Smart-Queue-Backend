@@ -96,8 +96,9 @@ export class QueuesController {
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: QueueStatus,
+    @Request() req: any,
   ) {
-    const data = await this.queuesService.updateStatus(id, status);
+    const data = await this.queuesService.updateStatus(id, status, req.user.id);
     return {
       status: true,
       message: 'Status updated successfully',

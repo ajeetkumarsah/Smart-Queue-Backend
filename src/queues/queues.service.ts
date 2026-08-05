@@ -1,14 +1,16 @@
-import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { QueuesRepository } from './queues.repository';
 import { QueueStatus } from './queue.entity';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BusinessesService } from '../businesses/businesses.service';
 
 @Injectable()
 export class QueuesService {
   constructor(
     private readonly queuesRepo: QueuesRepository,
     private readonly notificationsService: NotificationsService,
+    private readonly businessesService: BusinessesService,
     @Inject(forwardRef(() => EventsGateway))
     private readonly eventsGateway: EventsGateway,
   ) {}
@@ -57,7 +59,18 @@ export class QueuesService {
     return this.updateStatus(queueId, QueueStatus.CANCELLED);
   }
 
-  async updateStatus(queueId: string, newStatus: QueueStatus) {
+  async updateStatus(queueId: string, newStatus: QueueStatus, ownerId?: string) {
+    // If ownerId is provided, verify business verification
+    if (ownerId) {
+      const queueDetails = await this.queuesRepo.findByIdWithDetails(queueId);
+      if (queueDetails) {
+        const business = await this.businessesService.getById(queueDetails.business_id);
+        if (!business.is_verified) {
+          throw new ForbiddenException('Your business is not verified. You cannot perform this action.');
+        }
+      }
+    }
+
     const queue = await this.queuesRepo.updateStatus(queueId, newStatus);
 
     let title = '';

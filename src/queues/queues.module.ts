@@ -6,6 +6,7 @@ import { QueuesRepository } from './queues.repository';
 import { QueueProcessor } from './queue.processor';
 import { EventsModule } from '../events/events.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { BusinessesModule } from '../businesses/businesses.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     }),
     EventsModule,
     NotificationsModule,
+    BusinessesModule,
   ],
   providers: [QueuesService, QueuesRepository, QueueProcessor],
   controllers: [QueuesController],

@@ -16,6 +16,9 @@ export class ServicesService {
     if (business.owner_id !== ownerId) {
       throw new ForbiddenException('You do not own this business');
     }
+    if (!business.is_verified) {
+      throw new ForbiddenException('Your business is not verified. You cannot perform this action.');
+    }
 
     return this.servicesRepository.create({
       business_id: dto.business_id,
@@ -39,6 +42,9 @@ export class ServicesService {
     const business = await this.businessesService.getById(service.business_id);
     if (business.owner_id !== ownerId) {
       throw new ForbiddenException('You do not own this business');
+    }
+    if (!business.is_verified) {
+      throw new ForbiddenException('Your business is not verified. You cannot perform this action.');
     }
     return this.servicesRepository.updateStatus(serviceId, isActive);
   }
