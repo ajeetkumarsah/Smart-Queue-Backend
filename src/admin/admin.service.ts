@@ -30,7 +30,7 @@ export class AdminService {
   async getAllUsers(page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
     const query = `
-      SELECT id, email, full_name, role, phone_number, created_at
+      SELECT id, email, full_name, role, phone AS phone_number, created_at
       FROM users
       ORDER BY created_at DESC
       LIMIT $1 OFFSET $2
@@ -55,7 +55,7 @@ export class AdminService {
   async getAllBusinesses(page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
     const query = `
-      SELECT b.id, b.name, b.email, b.phone, b.is_verified, b.created_at, u.full_name as owner_name
+      SELECT b.id, b.name, u.email, b.phone, b.is_verified, b.created_at, u.full_name as owner_name
       FROM businesses b
       JOIN users u ON b.owner_id = u.id
       ORDER BY b.created_at DESC
