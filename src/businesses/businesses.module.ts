@@ -4,8 +4,10 @@ import { BusinessesService } from './businesses.service';
 import { BusinessesRepository } from './businesses.repository';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+
 @Module({
-  imports: [CloudinaryModule],
+  imports: [CloudinaryModule, SubscriptionsModule],
   controllers: [BusinessesController],
   providers: [BusinessesService, BusinessesRepository],
   exports: [BusinessesService],

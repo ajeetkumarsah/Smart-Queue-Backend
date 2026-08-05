@@ -185,6 +185,32 @@ export class DatabaseInitService implements OnModuleInit {
       `);
 
       // 3. Ensure any missing columns are added safely
+
+      const createSubscriptionsQuery = `
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            plan_type VARCHAR(50) NOT NULL,
+            start_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            end_date TIMESTAMP WITH TIME ZONE,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      await client.query(createSubscriptionsQuery);
+
+      const createBusinessOperatorsQuery = `
+        CREATE TABLE IF NOT EXISTS business_operators (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(business_id, user_id)
+        );
+      `;
+      await client.query(createBusinessOperatorsQuery);
+
       const addColumnQueries = [
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20);`,

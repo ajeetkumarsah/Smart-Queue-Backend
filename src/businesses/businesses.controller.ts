@@ -72,6 +72,18 @@ export class BusinessesController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('BUSINESS_OWNER')
+  @Post(':id/operators')
+  async addOperator(
+    @Req() req,
+    @Param('id') id: string,
+    @Body('email') email: string,
+  ) {
+    const data = await this.businessesService.addOperator(id, req.user.id, email);
+    return { status: true, message: 'Operator added successfully', data, error: null };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('BUSINESS_OWNER', 'OPERATOR')
   @Get('my')
   async getMyBusinesses(@Req() req) {
     const data = await this.businessesService.findMyBusinesses(req.user.id);

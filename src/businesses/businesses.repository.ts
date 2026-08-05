@@ -6,10 +6,12 @@ import { BusinessEntity } from './business.entity';
 export class BusinessesRepository extends BaseRepository<BusinessEntity> {
   protected readonly tableName = 'businesses';
 
-  async findByOwnerId(ownerId: string): Promise<BusinessEntity[]> {
+  async findByUserId(userId: string): Promise<BusinessEntity[]> {
     return this.query(
-      `SELECT * FROM ${this.tableName} WHERE owner_id = $1 AND deleted_at IS NULL`,
-      [ownerId],
+      `SELECT DISTINCT b.* FROM ${this.tableName} b
+       LEFT JOIN business_operators bo ON b.id = bo.business_id
+       WHERE (b.owner_id = $1 OR bo.user_id = $1) AND b.deleted_at IS NULL`,
+      [userId],
     );
   }
 

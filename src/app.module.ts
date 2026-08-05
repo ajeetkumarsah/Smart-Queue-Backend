@@ -14,6 +14,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { AppConfigModule } from './app-config/app-config.module';
 import { EventsModule } from './events/events.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AppConfigModule,
     EventsModule,
     NotificationsModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -31,7 +31,7 @@ export class QueuesController {
     };
   }
 
-  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN', 'OPERATOR')
   @Get('service/:serviceId')
   async getServiceQueues(@Param('serviceId') serviceId: string) {
     const data = await this.queuesService.getActiveQueuesByService(serviceId);
@@ -55,7 +55,7 @@ export class QueuesController {
     };
   }
 
-  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN', 'OPERATOR')
   @Get('service/:serviceId/history')
   async getServiceQueueHistory(@Param('serviceId') serviceId: string) {
     const data = await this.queuesService.getServiceQueueHistory(serviceId);
@@ -91,7 +91,7 @@ export class QueuesController {
     };
   }
 
-  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN')
+  @Roles('BUSINESS_OWNER', 'SUPER_ADMIN', 'OPERATOR')
   @Patch(':id/status')
   async updateStatus(
     @Param('id') id: string,

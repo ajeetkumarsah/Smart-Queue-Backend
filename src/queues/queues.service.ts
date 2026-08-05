@@ -60,10 +60,15 @@ export class QueuesService {
   }
 
   async updateStatus(queueId: string, newStatus: QueueStatus, ownerId?: string) {
-    // If ownerId is provided, verify business verification
     if (ownerId) {
       const queueDetails = await this.queuesRepo.findByIdWithDetails(queueId);
       if (queueDetails) {
+        const myBusinesses = await this.businessesService.findMyBusinesses(ownerId);
+        const hasAccess = myBusinesses.some(b => b.id === queueDetails.business_id);
+        if (!hasAccess) {
+          throw new ForbiddenException('You do not have permission to manage this queue.');
+        }
+
         const business = await this.businessesService.getById(queueDetails.business_id);
         if (!business.is_verified) {
           throw new ForbiddenException('Your business is not verified. You cannot perform this action.');
