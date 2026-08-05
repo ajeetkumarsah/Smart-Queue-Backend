@@ -9,7 +9,7 @@ export class AdminService {
   async getPlatformStats() {
     const usersCountQuery = `SELECT COUNT(*) FROM users`;
     const businessesCountQuery = `SELECT COUNT(*) FROM businesses`;
-    const queuesCountQuery = `SELECT COUNT(*) FROM service_queues WHERE status = 'ACTIVE'`;
+    const queuesCountQuery = `SELECT COUNT(*) FROM queues WHERE status = 'WAITING' OR status = 'IN_PROGRESS'`;
     const subsCountQuery = `SELECT COUNT(*) FROM subscriptions WHERE is_active = true`;
 
     const [usersRes, businessesRes, queuesRes, subsRes] = await Promise.all([
