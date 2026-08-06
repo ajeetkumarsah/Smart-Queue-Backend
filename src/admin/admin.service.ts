@@ -7,6 +7,24 @@ import { PG_CONNECTION } from '../database/database.constants';
 export class AdminService {
   constructor(@Inject(PG_CONNECTION) private readonly pool: Pool) {}
 
+  private async logAudit(
+    action: string,
+    entityType: string,
+    entityId: string,
+    oldData: any = null,
+    newData: any = null,
+  ) {
+    try {
+      const query = `
+        INSERT INTO audit_logs (action, entity_type, entity_id, old_data, new_data)
+        VALUES ($1, $2, $3, $4, $5)
+      `;
+      await this.pool.query(query, [action, entityType, entityId, oldData, newData]);
+    } catch (err) {
+      console.error('Failed to log audit:', err);
+    }
+  }
+
   private calculateGrowth(cur: number, prev: number): number {
     if (prev === 0) return cur > 0 ? 100 : 0;
     return Math.round(((cur - prev) / prev) * 100);
@@ -101,15 +119,11 @@ export class AdminService {
       ORDER BY DATE_TRUNC('${period === '1y' ? 'month' : 'day'}', created_at) ASC
     `;
 
-    // Get 5 recent activities (latest users/businesses created)
+    // Get 5 recent activities (latest audit logs)
     const recentQuery = `
-      SELECT id, full_name as title, 'Customer Registration' as type, created_at as date, 'red' as color
-      FROM users
-      WHERE role = 'CUSTOMER'
-      UNION ALL
-      SELECT b.id, b.name as title, 'Business Signup' as type, b.created_at as date, 'orange' as color
-      FROM businesses b
-      ORDER BY date DESC
+      SELECT id, action, entity_type, created_at as date
+      FROM audit_logs
+      ORDER BY created_at DESC
       LIMIT 5
     `;
 
@@ -127,10 +141,10 @@ export class AdminService {
     // Format recent data
     const recentData = recentRes.rows.map(row => ({
       id: row.id,
-      title: row.title,
+      title: `${row.action} ${row.entity_type}`,
       date: new Date(row.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
-      value: row.type, // We can reuse value to show type
-      color: row.color,
+      value: row.entity_type,
+      color: row.action === 'CREATE' ? 'badge-success' : row.action === 'UPDATE' ? 'badge-primary' : 'badge-danger',
     }));
 
     return {
@@ -142,21 +156,13 @@ export class AdminService {
   async getAllActivities(page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
     const query = `
-      SELECT id, full_name as title, 'Customer Registration' as type, created_at as date, 'red' as color
-      FROM users
-      WHERE role = 'CUSTOMER'
-      UNION ALL
-      SELECT b.id, b.name as title, 'Business Signup' as type, b.created_at as date, 'orange' as color
-      FROM businesses b
-      ORDER BY date DESC
+      SELECT id, action, entity_type, entity_id, old_data, new_data, created_at
+      FROM audit_logs
+      ORDER BY created_at DESC
       LIMIT $1 OFFSET $2
     `;
     const countQuery = `
-      SELECT SUM(count) as total FROM (
-        SELECT COUNT(*) as count FROM users WHERE role = 'CUSTOMER'
-        UNION ALL
-        SELECT COUNT(*) as count FROM businesses
-      ) sub
+      SELECT COUNT(*) as total FROM audit_logs
     `;
 
     const [dataRes, countRes] = await Promise.all([
@@ -166,10 +172,12 @@ export class AdminService {
 
     const formattedData = dataRes.rows.map(row => ({
       id: row.id,
-      title: row.title,
-      date: new Date(row.date).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
-      type: row.type,
-      color: row.color,
+      title: `${row.action} ${row.entity_type}`,
+      date: new Date(row.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+      type: row.entity_type,
+      color: row.action === 'CREATE' ? 'badge-success' : row.action === 'UPDATE' ? 'badge-primary' : 'badge-danger',
+      old_data: row.old_data,
+      new_data: row.new_data
     }));
 
     return {
@@ -353,7 +361,9 @@ export class AdminService {
     const values = [data.full_name, data.email, data.phone, data.role || 'CUSTOMER', hashedPassword];
     
     const res = await this.pool.query(query, values);
-    return res.rows[0];
+    const newUser = res.rows[0];
+    await this.logAudit('CREATE', 'USER', newUser.id, null, newUser);
+    return newUser;
   }
 
   async updateUser(userId: string, data: { full_name?: string; phone?: string; role?: string; is_active?: boolean }) {
@@ -375,15 +385,28 @@ export class AdminService {
       WHERE id = $${idx}
       RETURNING id, email, full_name, role, phone AS phone_number, is_active
     `;
+    const oldRes = await this.pool.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+    const oldData = oldRes.rows[0];
+
     const res = await this.pool.query(query, values);
     if (res.rowCount === 0) throw new NotFoundException('User not found');
-    return res.rows[0];
+    
+    const newData = res.rows[0];
+    await this.logAudit('UPDATE', 'USER', userId, oldData, newData);
+    
+    return newData;
   }
 
   async deleteUser(userId: string) {
+    const oldRes = await this.pool.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+    if (oldRes.rowCount === 0) throw new NotFoundException('User not found');
+    const oldData = oldRes.rows[0];
+
     const query = `UPDATE users SET is_active = false, deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id`;
     const res = await this.pool.query(query, [userId]);
-    if (res.rowCount === 0) throw new NotFoundException('User not found');
+    
+    await this.logAudit('DELETE', 'USER', userId, oldData, null);
+    
     return true;
   }
 
@@ -404,7 +427,9 @@ export class AdminService {
     const values = [data.owner_id, data.name, data.phone, data.category || '', data.address || ''];
     
     const res = await this.pool.query(query, values);
-    return res.rows[0];
+    const newBusiness = res.rows[0];
+    await this.logAudit('CREATE', 'BUSINESS', newBusiness.id, null, newBusiness);
+    return newBusiness;
   }
 
   async updateBusiness(businessId: string, data: { name?: string; phone?: string; is_active?: boolean }) {
@@ -425,15 +450,28 @@ export class AdminService {
       WHERE id = $${idx}
       RETURNING id, name, phone, is_active, is_verified
     `;
+    const oldRes = await this.pool.query(`SELECT * FROM businesses WHERE id = $1`, [businessId]);
+    const oldData = oldRes.rows[0];
+
     const res = await this.pool.query(query, values);
     if (res.rowCount === 0) throw new NotFoundException('Business not found');
-    return res.rows[0];
+    
+    const newData = res.rows[0];
+    await this.logAudit('UPDATE', 'BUSINESS', businessId, oldData, newData);
+    
+    return newData;
   }
 
   async deleteBusiness(businessId: string) {
+    const oldRes = await this.pool.query(`SELECT * FROM businesses WHERE id = $1`, [businessId]);
+    if (oldRes.rowCount === 0) throw new NotFoundException('Business not found');
+    const oldData = oldRes.rows[0];
+
     const query = `DELETE FROM businesses WHERE id = $1 RETURNING id`;
     const res = await this.pool.query(query, [businessId]);
-    if (res.rowCount === 0) throw new NotFoundException('Business not found');
+    
+    await this.logAudit('DELETE', 'BUSINESS', businessId, oldData, null);
+    
     return true;
   }
 
@@ -498,7 +536,9 @@ export class AdminService {
       RETURNING id, name, estimated_wait_time_mins, is_active
     `;
     const res = await this.pool.query(query, [data.business_id, data.name, data.estimated_wait_time_mins]);
-    return res.rows[0];
+    const newService = res.rows[0];
+    await this.logAudit('CREATE', 'SERVICE', newService.id, null, newService);
+    return newService;
   }
 
   async updateServiceStatus(serviceId: string, isActive: boolean) {
@@ -508,17 +548,29 @@ export class AdminService {
       WHERE id = $2
       RETURNING id, name, is_active
     `;
+    const oldRes = await this.pool.query(`SELECT * FROM services WHERE id = $1`, [serviceId]);
+    const oldData = oldRes.rows[0];
+
     const res = await this.pool.query(query, [isActive, serviceId]);
     if (res.rowCount === 0) {
       throw new NotFoundException('Service not found');
     }
-    return res.rows[0];
+    const newData = res.rows[0];
+    await this.logAudit('UPDATE', 'SERVICE', serviceId, oldData, newData);
+    return newData;
   }
 
   async deleteService(serviceId: string) {
+    const oldRes = await this.pool.query(`SELECT * FROM services WHERE id = $1`, [serviceId]);
+    if (oldRes.rowCount === 0) throw new NotFoundException('Service not found');
+    const oldData = oldRes.rows[0];
+
+    // Assuming we want a hard delete here as well to match businesses? Wait, the user didn't ask for hard delete for services, only businesses. So I'll keep the soft delete but log it.
     const query = `UPDATE services SET is_active = false, deleted_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id`;
     const res = await this.pool.query(query, [serviceId]);
-    if (res.rowCount === 0) throw new NotFoundException('Service not found');
+    
+    await this.logAudit('DELETE', 'SERVICE', serviceId, oldData, null);
+    
     return true;
   }
 
@@ -541,15 +593,28 @@ export class AdminService {
       WHERE id = $${idx}
       RETURNING id, plan_type, is_active, start_date, end_date
     `;
+    const oldRes = await this.pool.query(`SELECT * FROM subscriptions WHERE id = $1`, [subscriptionId]);
+    const oldData = oldRes.rows[0];
+
     const res = await this.pool.query(query, values);
     if (res.rowCount === 0) throw new NotFoundException('Subscription not found');
-    return res.rows[0];
+    
+    const newData = res.rows[0];
+    await this.logAudit('UPDATE', 'SUBSCRIPTION', subscriptionId, oldData, newData);
+    
+    return newData;
   }
 
   async deleteSubscription(subscriptionId: string) {
+    const oldRes = await this.pool.query(`SELECT * FROM subscriptions WHERE id = $1`, [subscriptionId]);
+    if (oldRes.rowCount === 0) throw new NotFoundException('Subscription not found');
+    const oldData = oldRes.rows[0];
+
     const query = `UPDATE subscriptions SET is_active = false, end_date = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id`;
     const res = await this.pool.query(query, [subscriptionId]);
-    if (res.rowCount === 0) throw new NotFoundException('Subscription not found');
+    
+    await this.logAudit('DELETE', 'SUBSCRIPTION', subscriptionId, oldData, null);
+    
     return true;
   }
 }

@@ -211,6 +211,20 @@ export class DatabaseInitService implements OnModuleInit {
       `;
       await client.query(createBusinessOperatorsQuery);
 
+      const createAuditLogsQuery = `
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
+            action VARCHAR(50) NOT NULL,
+            entity_type VARCHAR(50) NOT NULL,
+            entity_id UUID NOT NULL,
+            old_data JSONB,
+            new_data JSONB,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      await client.query(createAuditLogsQuery);
+
       const addColumnQueries = [
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20);`,
