@@ -216,6 +216,7 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
       ],
       [QueueStatus.ARRIVED]: [QueueStatus.CALLED, QueueStatus.SERVING],
       [QueueStatus.CALLED]: [
+        QueueStatus.CALLED, // Allow calling again
         QueueStatus.SERVING,
         QueueStatus.SKIPPED,
         QueueStatus.NO_SHOW,
