@@ -190,6 +190,48 @@ export class AdminService {
     };
   }
 
+  async globalSearch(query: string) {
+    if (!query || query.trim().length === 0) {
+      return { users: [], businesses: [], services: [] };
+    }
+
+    const searchTerm = `%${query}%`;
+
+    const userQuery = `
+      SELECT id, full_name, email, role, is_active, created_at
+      FROM users
+      WHERE full_name ILIKE $1 OR email ILIKE $1
+      LIMIT 10
+    `;
+
+    const businessQuery = `
+      SELECT id, name, description as category, is_active, created_at
+      FROM businesses
+      WHERE name ILIKE $1 OR description ILIKE $1
+      LIMIT 10
+    `;
+
+    const serviceQuery = `
+      SELECT s.id, s.name, b.name as category, s.is_active, s.estimated_wait_time_mins as base_price, s.created_at
+      FROM services s
+      LEFT JOIN businesses b ON s.business_id = b.id
+      WHERE s.name ILIKE $1 OR s.description ILIKE $1
+      LIMIT 10
+    `;
+
+    const [usersRes, businessesRes, servicesRes] = await Promise.all([
+      this.pool.query(userQuery, [searchTerm]),
+      this.pool.query(businessQuery, [searchTerm]),
+      this.pool.query(serviceQuery, [searchTerm]),
+    ]);
+
+    return {
+      users: usersRes.rows,
+      businesses: businessesRes.rows,
+      services: servicesRes.rows,
+    };
+  }
+
   async getAllUsers(page: number = 1, limit: number = 20, period?: string, role?: string, status?: string, search?: string) {
     const offset = (page - 1) * limit;
     

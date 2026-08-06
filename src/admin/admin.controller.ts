@@ -53,6 +53,16 @@ export class AdminController {
     };
   }
 
+  @Get('search')
+  async getSearch(@Query('q') q: string) {
+    const data = await this.adminService.globalSearch(q);
+    return {
+      status: true,
+      message: 'Search results fetched successfully',
+      data,
+    };
+  }
+
   @Get('users')
   async getUsers(
     @Query('page') page: string = '1',
