@@ -21,7 +21,7 @@ export class PlansController {
   @Get()
   async getActivePlans() {
     const plans = await this.plansService.getActivePlans();
-    return { data: plans };
+    return { status: true, data: plans };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,7 +29,7 @@ export class PlansController {
   @Get('all')
   async getAllPlans() {
     const plans = await this.plansService.getAllPlans();
-    return { data: plans };
+    return { status: true, data: plans };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
