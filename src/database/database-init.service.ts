@@ -195,6 +195,9 @@ export class DatabaseInitService implements OnModuleInit {
             period VARCHAR(50) NOT NULL,
             features JSONB,
             is_active BOOLEAN DEFAULT true,
+            has_tag BOOLEAN DEFAULT false,
+            tag_text VARCHAR(50),
+            description TEXT,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
@@ -204,6 +207,9 @@ export class DatabaseInitService implements OnModuleInit {
       // Remove unique constraint if it was created in older versions
       try {
         await client.query('ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_code_key;');
+        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_tag BOOLEAN DEFAULT false;');
+        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS tag_text VARCHAR(50);');
+        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS description TEXT;');
       } catch (err) {
         // Ignore if constraint doesn't exist or name is different
       }
@@ -212,9 +218,9 @@ export class DatabaseInitService implements OnModuleInit {
       const plansCheck = await client.query('SELECT COUNT(*) FROM plans');
       if (parseInt(plansCheck.rows[0].count, 10) === 0) {
         await client.query(`
-          INSERT INTO plans (name, code, price, period, features) VALUES
-          ('Monthly Plan', 'MONTHLY', 9.99, '/mo', '["Add more businesses"]'::jsonb),
-          ('Yearly Plan', 'YEARLY', 99.99, '/yr', '["Add more businesses", "Best value"]'::jsonb)
+          INSERT INTO plans (name, code, price, period, features, has_tag, tag_text, description) VALUES
+          ('Monthly Plan', 'MONTHLY', 9.99, '/mo', '["Add more businesses"]'::jsonb, true, 'Active', 'Get started with essential tools to manage your team efficiently. Ideal for small teams with fundamental needs.'),
+          ('Yearly Plan', 'YEARLY', 99.99, '/yr', '["Add more businesses", "Best value"]'::jsonb, true, 'Save 15%', 'Maximize team performance with premium tools and full customization options, perfect for larger organizations.')
         `);
       }
 
