@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AdminModule } from './admin/admin.module';
 import { PlansModule } from './plans/plans.module';
+import { FeaturesModule } from './features/features.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { PlansModule } from './plans/plans.module';
     SubscriptionsModule,
     AdminModule,
     PlansModule,
+    FeaturesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

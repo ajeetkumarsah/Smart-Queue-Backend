@@ -186,6 +186,33 @@ export class DatabaseInitService implements OnModuleInit {
 
       // 3. Ensure any missing columns are added safely
 
+      const createFeaturesQuery = `
+        CREATE TABLE IF NOT EXISTS features (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            name VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      await client.query(createFeaturesQuery);
+
+      // Seed default features if empty
+      const featuresCheck = await client.query('SELECT COUNT(*) FROM features');
+      if (parseInt(featuresCheck.rows[0].count, 10) === 0) {
+        await client.query(`
+          INSERT INTO features (name) VALUES
+          ('Access to core HR features'),
+          ('Employee record management'),
+          ('Basic reporting tools'),
+          ('Manage up to 10 team members'),
+          ('Track employee attendance'),
+          ('Assign and monitor tasks'),
+          ('Email support'),
+          ('Simple onboarding process'),
+          ('Designed user-focused interfaces')
+        `);
+      }
+
       const createPlansQuery = `
         CREATE TABLE IF NOT EXISTS plans (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
