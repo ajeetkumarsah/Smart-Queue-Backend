@@ -190,7 +190,7 @@ export class DatabaseInitService implements OnModuleInit {
         CREATE TABLE IF NOT EXISTS plans (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             name VARCHAR(255) NOT NULL,
-            code VARCHAR(50) UNIQUE NOT NULL,
+            code VARCHAR(50) NOT NULL,
             price DECIMAL(10, 2) NOT NULL,
             period VARCHAR(50) NOT NULL,
             features JSONB,
@@ -200,6 +200,13 @@ export class DatabaseInitService implements OnModuleInit {
         );
       `;
       await client.query(createPlansQuery);
+      
+      // Remove unique constraint if it was created in older versions
+      try {
+        await client.query('ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_code_key;');
+      } catch (err) {
+        // Ignore if constraint doesn't exist or name is different
+      }
 
       // Seed default plans if empty
       const plansCheck = await client.query('SELECT COUNT(*) FROM plans');
