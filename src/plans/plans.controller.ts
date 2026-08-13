@@ -33,11 +33,19 @@ export class PlansController {
     const activeSubscription = await this.subscriptionsService.getActiveSubscription(req.user.id);
     const activePlanCode = activeSubscription?.plan_type;
 
-    // Attach is_current_active_plan flag
-    const plansWithStatus = plans.map(plan => ({
-      ...plan,
-      is_current_active_plan: activePlanCode === plan.code,
-    }));
+    // Attach is_current_active_plan flag, guaranteeing at most one is active
+    let foundActive = false;
+    const plansWithStatus = plans.map(plan => {
+      let is_current = false;
+      if (!foundActive && activePlanCode === plan.code) {
+        is_current = true;
+        foundActive = true;
+      }
+      return {
+        ...plan,
+        is_current_active_plan: is_current,
+      };
+    });
 
     return { status: true, data: plansWithStatus };
   }
