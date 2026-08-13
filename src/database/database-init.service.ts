@@ -195,23 +195,6 @@ export class DatabaseInitService implements OnModuleInit {
       `;
       await client.query(createFeaturesQuery);
 
-      // Seed default features if empty
-      const featuresCheck = await client.query('SELECT COUNT(*) FROM features');
-      if (parseInt(featuresCheck.rows[0].count, 10) === 0) {
-        await client.query(`
-          INSERT INTO features (name) VALUES
-          ('Unlimited queue generation'),
-          ('Manage multiple services'),
-          ('QR Code scanning & generation'),
-          ('Real-time queue tracking'),
-          ('Customer SMS notifications'),
-          ('Advanced analytics & reporting'),
-          ('Custom branding for your business'),
-          ('Priority support'),
-          ('Dedicated Account Manager')
-        `);
-      }
-
       const createPlansQuery = `
         CREATE TABLE IF NOT EXISTS plans (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -229,37 +212,6 @@ export class DatabaseInitService implements OnModuleInit {
         );
       `;
       await client.query(createPlansQuery);
-
-      // Remove unique constraint if it was created in older versions
-      try {
-        await client.query(
-          'ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_code_key;',
-        );
-        await client.query(
-          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_tag BOOLEAN DEFAULT false;',
-        );
-        await client.query(
-          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS tag_text VARCHAR(50);',
-        );
-        await client.query(
-          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS description TEXT;',
-        );
-        await client.query(
-          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS original_price DECIMAL(10, 2);',
-        );
-      } catch (err) {
-        // Ignore if constraint doesn't exist or name is different
-      }
-
-      // Seed default plans if empty
-      const plansCheck = await client.query('SELECT COUNT(*) FROM plans');
-      if (parseInt(plansCheck.rows[0].count, 10) === 0) {
-        await client.query(`
-          INSERT INTO plans (name, code, price, period, features, has_tag, tag_text, description) VALUES
-          ('Monthly Plan', 'MONTHLY', 9.99, '/mo', '["Add more businesses"]'::jsonb, true, 'Active', 'Get started with essential tools to manage your team efficiently. Ideal for small teams with fundamental needs.'),
-          ('Yearly Plan', 'YEARLY', 99.99, '/yr', '["Add more businesses", "Best value"]'::jsonb, true, 'Save 15%', 'Maximize team performance with premium tools and full customization options, perfect for larger organizations.')
-        `);
-      }
 
       const createSubscriptionsQuery = `
         CREATE TABLE IF NOT EXISTS subscriptions (
