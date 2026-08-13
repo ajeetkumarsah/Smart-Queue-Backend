@@ -64,7 +64,7 @@ export class PlansRepository extends BaseRepository<PlanEntity> {
       values.push(data.period);
     }
     if (data.features !== undefined) {
-      updates.push(`features = $${idx++}`);
+      updates.push(`features = $${idx++}::jsonb`);
       values.push(JSON.stringify(data.features));
     }
     if (data.is_active !== undefined) {
