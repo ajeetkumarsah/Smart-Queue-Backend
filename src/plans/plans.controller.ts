@@ -1,0 +1,61 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import { PlansService } from './plans.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { PlanEntity } from './plans.entity';
+
+@Controller('plans')
+export class PlansController {
+  constructor(private readonly plansService: PlansService) {}
+
+  @Get()
+  async getActivePlans() {
+    const plans = await this.plansService.getActivePlans();
+    return { data: plans };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Get('all')
+  async getAllPlans() {
+    const plans = await this.plansService.getAllPlans();
+    return { data: plans };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Post()
+  async createPlan(@Body() data: Partial<PlanEntity>) {
+    const plan = await this.plansService.createPlan(data);
+    return { data: plan, message: 'Plan created successfully' };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Patch(':id')
+  async updatePlan(
+    @Param('id') id: string,
+    @Body() data: Partial<PlanEntity>,
+  ) {
+    const plan = await this.plansService.updatePlan(id, data);
+    return { data: plan, message: 'Plan updated successfully' };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @Delete(':id')
+  async deletePlan(@Param('id') id: string) {
+    await this.plansService.deletePlan(id);
+    return { message: 'Plan deleted successfully' };
+  }
+}

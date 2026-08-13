@@ -186,6 +186,31 @@ export class DatabaseInitService implements OnModuleInit {
 
       // 3. Ensure any missing columns are added safely
 
+      const createPlansQuery = `
+        CREATE TABLE IF NOT EXISTS plans (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            name VARCHAR(255) NOT NULL,
+            code VARCHAR(50) UNIQUE NOT NULL,
+            price DECIMAL(10, 2) NOT NULL,
+            period VARCHAR(50) NOT NULL,
+            features JSONB,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      await client.query(createPlansQuery);
+
+      // Seed default plans if empty
+      const plansCheck = await client.query('SELECT COUNT(*) FROM plans');
+      if (parseInt(plansCheck.rows[0].count, 10) === 0) {
+        await client.query(`
+          INSERT INTO plans (name, code, price, period, features) VALUES
+          ('Monthly Plan', 'MONTHLY', 9.99, '/mo', '["Add more businesses"]'::jsonb),
+          ('Yearly Plan', 'YEARLY', 99.99, '/yr', '["Add more businesses", "Best value"]'::jsonb)
+        `);
+      }
+
       const createSubscriptionsQuery = `
         CREATE TABLE IF NOT EXISTS subscriptions (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

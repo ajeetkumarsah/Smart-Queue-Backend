@@ -16,6 +16,7 @@ import { EventsModule } from './events/events.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AdminModule } from './admin/admin.module';
+import { PlansModule } from './plans/plans.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { AdminModule } from './admin/admin.module';
     NotificationsModule,
     SubscriptionsModule,
     AdminModule,
+    PlansModule,
   ],
   controllers: [AppController],
   providers: [AppService],

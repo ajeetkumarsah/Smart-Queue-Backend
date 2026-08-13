@@ -7,46 +7,65 @@ export class QueuesRepository extends BaseRepository<QueueEntity> {
   protected readonly tableName = 'queues';
 
   async joinQueue(userId: string, serviceId: string): Promise<QueueEntity> {
-    // Basic logic for token and position
-    // In production, this should run in a transaction with locks
-    
-    // First, check max_queue_size and is_active
-    const serviceRes = await this.query<{ max_queue_size: number; is_active: boolean }>(
-      'SELECT max_queue_size, is_active FROM services WHERE id = $1',
-      [serviceId],
-    );
-    if (!serviceRes || serviceRes.length === 0) {
-      throw new BadRequestException('Service not found');
-    }
-    const service = serviceRes[0];
-    if (!service.is_active) {
-      throw new BadRequestException('This service is currently closed');
-    }
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    const countResult = await this.query<{ count: string }>(
-      'SELECT COUNT(*) FROM queues WHERE service_id = $1 AND status IN ($2, $3, $4, $5, $6)',
-      [serviceId, QueueStatus.CREATED, QueueStatus.WAITING, QueueStatus.READY, QueueStatus.ARRIVED, QueueStatus.CALLED],
-    );
-    const position = parseInt(countResult[0]?.count || '0', 10) + 1;
-    
-    if (service.max_queue_size && service.max_queue_size > 0 && position > service.max_queue_size) {
-      throw new BadRequestException('Maximum queue size reached');
-    }
-    const token = `T-${position.toString().padStart(4, '0')}`;
+      // 1. Lock the service row to prevent concurrent race conditions
+      const serviceRes = await client.query(
+        'SELECT max_queue_size, is_active FROM services WHERE id = $1 FOR UPDATE',
+        [serviceId],
+      );
+      if (!serviceRes || serviceRes.rows.length === 0) {
+        throw new BadRequestException('Service not found');
+      }
+      const service = serviceRes.rows[0];
+      if (!service.is_active) {
+        throw new BadRequestException('This service is currently closed');
+      }
 
-    const text = `
-      INSERT INTO ${this.tableName} (user_id, service_id, token_number, position, status)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `;
-    const result = await this.queryOne(text, [
-      userId,
-      serviceId,
-      token,
-      position,
-      QueueStatus.WAITING,
-    ]);
-    return this.findByIdWithDetails(result.id);
+      // 2. Enforce max queue size based on currently active customers
+      const countResult = await client.query(
+        'SELECT COUNT(*) FROM queues WHERE service_id = $1 AND status IN ($2, $3, $4, $5, $6)',
+        [serviceId, QueueStatus.CREATED, QueueStatus.WAITING, QueueStatus.READY, QueueStatus.ARRIVED, QueueStatus.CALLED],
+      );
+      const currentActive = parseInt(countResult.rows[0]?.count || '0', 10);
+      if (service.max_queue_size && service.max_queue_size > 0 && currentActive >= service.max_queue_size) {
+        throw new BadRequestException('Maximum queue size reached');
+      }
+
+      // 3. Atomically determine the next token number using MAX(position) across ALL time
+      const maxPosResult = await client.query(
+        'SELECT COALESCE(MAX(position), 0) as max_pos FROM queues WHERE service_id = $1',
+        [serviceId],
+      );
+      const position = parseInt(maxPosResult.rows[0]?.max_pos?.toString() || '0', 10) + 1;
+      const token = `T-${position.toString().padStart(4, '0')}`;
+
+      // 4. Insert the new queue record
+      const text = `
+        INSERT INTO ${this.tableName} (user_id, service_id, token_number, position, status)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+      `;
+      const result = await client.query(text, [
+        userId,
+        serviceId,
+        token,
+        position,
+        QueueStatus.WAITING,
+      ]);
+
+      await client.query('COMMIT');
+
+      // Fetch full entity details after transaction commits
+      return this.findByIdWithDetails(result.rows[0].id);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async findByIdWithDetails(queueId: string): Promise<any> {
