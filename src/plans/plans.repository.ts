@@ -12,6 +12,14 @@ export class PlansRepository extends BaseRepository<PlanEntity> {
     super(pool);
   }
 
+  async findAll(): Promise<PlanEntity[]> {
+    return this.query<PlanEntity>(`SELECT * FROM ${this.tableName} ORDER BY created_at DESC`);
+  }
+
+  async findById(id: string): Promise<PlanEntity | null> {
+    return this.queryOne<PlanEntity>(`SELECT * FROM ${this.tableName} WHERE id = $1`, [id]);
+  }
+
   async findActivePlans(): Promise<PlanEntity[]> {
     return this.query<PlanEntity>(
       `SELECT * FROM ${this.tableName} WHERE is_active = true ORDER BY price ASC`
