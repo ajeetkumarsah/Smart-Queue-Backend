@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as argon2 from 'argon2';
 import { Pool, PoolClient } from 'pg';
 import { PG_CONNECTION } from './database.constants';
 
@@ -201,15 +200,15 @@ export class DatabaseInitService implements OnModuleInit {
       if (parseInt(featuresCheck.rows[0].count, 10) === 0) {
         await client.query(`
           INSERT INTO features (name) VALUES
-          ('Access to core HR features'),
-          ('Employee record management'),
-          ('Basic reporting tools'),
-          ('Manage up to 10 team members'),
-          ('Track employee attendance'),
-          ('Assign and monitor tasks'),
-          ('Email support'),
-          ('Simple onboarding process'),
-          ('Designed user-focused interfaces')
+          ('Unlimited queue generation'),
+          ('Manage multiple services'),
+          ('QR Code scanning & generation'),
+          ('Real-time queue tracking'),
+          ('Customer SMS notifications'),
+          ('Advanced analytics & reporting'),
+          ('Custom branding for your business'),
+          ('Priority support'),
+          ('Dedicated Account Manager')
         `);
       }
 
@@ -230,14 +229,24 @@ export class DatabaseInitService implements OnModuleInit {
         );
       `;
       await client.query(createPlansQuery);
-      
+
       // Remove unique constraint if it was created in older versions
       try {
-        await client.query('ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_code_key;');
-        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_tag BOOLEAN DEFAULT false;');
-        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS tag_text VARCHAR(50);');
-        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS description TEXT;');
-        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS original_price DECIMAL(10, 2);');
+        await client.query(
+          'ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_code_key;',
+        );
+        await client.query(
+          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_tag BOOLEAN DEFAULT false;',
+        );
+        await client.query(
+          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS tag_text VARCHAR(50);',
+        );
+        await client.query(
+          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS description TEXT;',
+        );
+        await client.query(
+          'ALTER TABLE plans ADD COLUMN IF NOT EXISTS original_price DECIMAL(10, 2);',
+        );
       } catch (err) {
         // Ignore if constraint doesn't exist or name is different
       }
