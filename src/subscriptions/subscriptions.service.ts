@@ -14,11 +14,8 @@ export class SubscriptionsService {
       throw new BadRequestException('Invalid plan type. Must be MONTHLY or YEARLY');
     }
 
-    // Check if already active
-    const active = await this.getActiveSubscription(userId);
-    if (active) {
-      throw new BadRequestException('You already have an active subscription');
-    }
+    // Deactivate any existing active subscriptions for this user
+    await this.subscriptionsRepo.deactivateOldSubscriptions(userId);
 
     // Process mock payment here if needed
 

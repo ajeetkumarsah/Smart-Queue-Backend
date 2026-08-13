@@ -17,6 +17,15 @@ export class SubscriptionsRepository {
     return res.rows[0] || null;
   }
 
+  async deactivateOldSubscriptions(userId: string): Promise<void> {
+    const text = `
+      UPDATE subscriptions
+      SET is_active = false
+      WHERE user_id = $1 AND is_active = true
+    `;
+    await this.pool.query(text, [userId]);
+  }
+
   async create(userId: string, planType: string): Promise<SubscriptionEntity> {
     // End date calculation (mock for 1 month or 1 year)
     const endDate = new Date();

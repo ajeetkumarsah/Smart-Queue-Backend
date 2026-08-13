@@ -14,14 +14,32 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PlanEntity } from './plans.entity';
 
+import { Request } from '@nestjs/common';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+
 @Controller('plans')
 export class PlansController {
-  constructor(private readonly plansService: PlansService) {}
+  constructor(
+    private readonly plansService: PlansService,
+    private readonly subscriptionsService: SubscriptionsService,
+  ) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get()
-  async getActivePlans() {
+  async getActivePlans(@Request() req: any) {
     const plans = await this.plansService.getActivePlans();
-    return { status: true, data: plans };
+    
+    // Get the user's active subscription
+    const activeSubscription = await this.subscriptionsService.getActiveSubscription(req.user.id);
+    const activePlanId = activeSubscription?.plan?.id;
+
+    // Attach is_current_active_plan flag
+    const plansWithStatus = plans.map(plan => ({
+      ...plan,
+      is_current_active_plan: activePlanId === plan.id,
+    }));
+
+    return { status: true, data: plansWithStatus };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
