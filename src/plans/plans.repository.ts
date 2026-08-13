@@ -28,8 +28,8 @@ export class PlansRepository extends BaseRepository<PlanEntity> {
 
   async createPlan(data: Partial<PlanEntity>): Promise<PlanEntity> {
     const text = `
-      INSERT INTO ${this.tableName} (name, code, price, period, features, is_active, has_tag, tag_text, description)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO ${this.tableName} (name, code, price, period, features, is_active, has_tag, tag_text, description, original_price)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
     return this.queryOne(text, [
@@ -42,6 +42,7 @@ export class PlansRepository extends BaseRepository<PlanEntity> {
       data.has_tag ?? false,
       data.tag_text ?? null,
       data.description ?? null,
+      data.original_price ?? null,
     ]);
   }
 
@@ -85,6 +86,10 @@ export class PlansRepository extends BaseRepository<PlanEntity> {
     if (data.description !== undefined) {
       updates.push(`description = $${idx++}`);
       values.push(data.description);
+    }
+    if (data.original_price !== undefined) {
+      updates.push(`original_price = $${idx++}`);
+      values.push(data.original_price);
     }
 
     if (updates.length === 0) {

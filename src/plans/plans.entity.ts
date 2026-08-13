@@ -9,6 +9,7 @@ export interface PlanEntity {
   has_tag?: boolean;
   tag_text?: string;
   description?: string;
+  original_price?: number;
   created_at: Date;
   updated_at: Date;
 }

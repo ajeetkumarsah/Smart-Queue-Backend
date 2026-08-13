@@ -210,6 +210,7 @@ export class DatabaseInitService implements OnModuleInit {
         await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS has_tag BOOLEAN DEFAULT false;');
         await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS tag_text VARCHAR(50);');
         await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS description TEXT;');
+        await client.query('ALTER TABLE plans ADD COLUMN IF NOT EXISTS original_price DECIMAL(10, 2);');
       } catch (err) {
         // Ignore if constraint doesn't exist or name is different
       }

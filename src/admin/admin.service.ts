@@ -628,6 +628,18 @@ export class AdminService {
 
     if (fields.length === 0) return null;
 
+    if (data.is_active === true) {
+      // Best practice: Ensure only one active plan per user.
+      const subRes = await this.pool.query('SELECT user_id FROM subscriptions WHERE id = $1', [subscriptionId]);
+      if (subRes.rowCount > 0) {
+        const userId = subRes.rows[0].user_id;
+        await this.pool.query(
+          'UPDATE subscriptions SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND id != $2 AND is_active = true',
+          [userId, subscriptionId]
+        );
+      }
+    }
+
     values.push(subscriptionId);
     const query = `
       UPDATE subscriptions
