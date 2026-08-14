@@ -47,6 +47,11 @@ export class SubscriptionsService {
       throw new BadRequestException('Invalid plan type.');
     }
 
+    const activeSub = await this.getActiveSubscription(userId);
+    if (activeSub && activeSub.plan_type === planType && activeSub.status === 'ACTIVE') {
+      throw new BadRequestException('You are already subscribed to this plan.');
+    }
+
     const amountInPaise = Math.round(Number(plan.price) * 100);
 
     if (amountInPaise === 0) {
@@ -138,6 +143,11 @@ export class SubscriptionsService {
     const plan = await this.subscriptionsRepo.findPlanByCode(planType);
     if (!plan) {
       throw new BadRequestException('Invalid plan type.');
+    }
+
+    const activeSub = await this.getActiveSubscription(userId);
+    if (activeSub && activeSub.plan_type === planType && activeSub.status === 'ACTIVE') {
+      throw new BadRequestException('You are already subscribed to this plan.');
     }
 
     // Deactivate any existing active subscriptions for this user
