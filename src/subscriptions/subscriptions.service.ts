@@ -37,6 +37,27 @@ export class SubscriptionsService {
 
     const amountInPaise = Math.round(Number(plan.price) * 100);
 
+    if (amountInPaise === 0) {
+      // Free plan - bypass Razorpay
+      await this.subscribe(userId, planType);
+      
+      // Log transaction as SUCCESS
+      await this.subscriptionsRepo.createTransaction(
+        userId,
+        planType,
+        0,
+        'INR',
+        `free_${userId}_${Date.now()}`,
+      );
+
+      return {
+        is_free: true,
+        order_id: `free_${userId}_${Date.now()}`,
+        amount: 0,
+        currency: 'INR',
+      };
+    }
+
     const options = {
       amount: amountInPaise,
       currency: 'INR',
@@ -62,6 +83,7 @@ export class SubscriptionsService {
         key_id: this.configService.get<string>('RAZORPAY_KEY_ID'),
       };
     } catch (err) {
+      console.error('Razorpay Create Order Error:', err);
       throw new BadRequestException('Failed to create Razorpay order');
     }
   }
