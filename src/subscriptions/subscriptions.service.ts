@@ -20,7 +20,13 @@ export class SubscriptionsService {
   }
 
   async getActiveSubscription(userId: string) {
-    return this.subscriptionsRepo.findActiveByUserId(userId);
+    const subscription = await this.subscriptionsRepo.findActiveByUserId(userId);
+    if (!subscription) return null;
+    const plan = await this.subscriptionsRepo.findPlanByCode(subscription.plan_type);
+    return {
+      ...subscription,
+      max_businesses: plan ? plan.max_businesses : 1,
+    };
   }
 
   async createOrder(userId: string, planType: string) {

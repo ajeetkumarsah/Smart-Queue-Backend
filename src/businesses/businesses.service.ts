@@ -15,14 +15,16 @@ export class BusinessesService {
 
   async create(ownerId: string, dto: CreateBusinessDto) {
     const existingBusinesses = await this.findMyBusinesses(ownerId);
-    if (existingBusinesses.length >= 1) {
-      const activeSubscription = await this.subscriptionsService.getActiveSubscription(ownerId);
-      if (!activeSubscription) {
-        throw new HttpException(
-          'You have reached the limit of free businesses. Please subscribe to add more.',
-          HttpStatus.PAYMENT_REQUIRED,
-        );
-      }
+    const activeSubscription = await this.subscriptionsService.getActiveSubscription(ownerId);
+    
+    // Default limit if no active premium plan is found
+    const maxBusinesses = activeSubscription ? activeSubscription.max_businesses : 1;
+
+    if (existingBusinesses.length >= maxBusinesses) {
+      throw new HttpException(
+        `You have reached your limit of ${maxBusinesses} business(es). Please upgrade your subscription to add more.`,
+        HttpStatus.PAYMENT_REQUIRED,
+      );
     }
 
     let lat = dto.latitude;
@@ -71,6 +73,14 @@ export class BusinessesService {
     const business = await this.getById(id);
     if (business.owner_id !== ownerId) {
       throw new ForbiddenException('You do not have permission to edit this business');
+    }
+
+    const activeSubscription = await this.subscriptionsService.getActiveSubscription(ownerId);
+    if (!activeSubscription || activeSubscription.plan_type === 'BASIC') {
+      throw new HttpException(
+        'Your premium plan has expired. Editing is restricted on the Basic plan. Please upgrade to edit or update your business.',
+        HttpStatus.PAYMENT_REQUIRED,
+      );
     }
     const updated = await this.businessesRepository.update(id, dto);
     if (!updated) {

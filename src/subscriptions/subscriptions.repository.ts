@@ -27,6 +27,28 @@ export class SubscriptionsRepository {
     return res.rows[0] || null;
   }
 
+  async findExpiringIn(days: number): Promise<SubscriptionEntity[]> {
+    const text = `
+      SELECT * FROM subscriptions
+      WHERE is_active = true
+        AND end_date IS NOT NULL
+        AND end_date::date = (CURRENT_DATE + $1 * interval '1 day')::date
+    `;
+    const res = await this.pool.query(text, [days]);
+    return res.rows;
+  }
+
+  async findExpired(): Promise<SubscriptionEntity[]> {
+    const text = `
+      SELECT * FROM subscriptions
+      WHERE is_active = true
+        AND end_date IS NOT NULL
+        AND end_date < CURRENT_TIMESTAMP
+    `;
+    const res = await this.pool.query(text);
+    return res.rows;
+  }
+
   async deactivateOldSubscriptions(userId: string): Promise<void> {
     const text = `
       UPDATE subscriptions
