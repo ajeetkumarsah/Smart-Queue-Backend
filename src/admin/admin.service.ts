@@ -671,4 +671,31 @@ export class AdminService {
     
     return true;
   }
+
+  // --- Transactions (Payment Logs) ---
+  async getAllTransactions(page: number = 1, limit: number = 20) {
+    const offset = (page - 1) * limit;
+    const query = `
+      SELECT t.id, t.user_id, t.plan_type, t.amount, t.currency, t.order_id, t.payment_id, t.status, t.created_at, u.email, u.full_name
+      FROM transactions t
+      JOIN users u ON t.user_id = u.id
+      ORDER BY t.created_at DESC
+      LIMIT $1 OFFSET $2
+    `;
+    const countQuery = `SELECT COUNT(*) FROM transactions`;
+
+    const [dataRes, countRes] = await Promise.all([
+      this.pool.query(query, [limit, offset]),
+      this.pool.query(countQuery),
+    ]);
+
+    return {
+      data: dataRes.rows,
+      meta: {
+        total: parseInt(countRes.rows[0].count, 10),
+        page,
+        limit,
+      },
+    };
+  }
 }

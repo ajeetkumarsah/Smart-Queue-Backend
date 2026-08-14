@@ -17,6 +17,16 @@ export class SubscriptionsRepository {
     return res.rows[0] || null;
   }
 
+  async findPlanByCode(code: string): Promise<any> {
+    const text = `
+      SELECT * FROM plans
+      WHERE code = $1 AND is_active = true
+      LIMIT 1
+    `;
+    const res = await this.pool.query(text, [code]);
+    return res.rows[0] || null;
+  }
+
   async deactivateOldSubscriptions(userId: string): Promise<void> {
     const text = `
       UPDATE subscriptions
@@ -42,5 +52,32 @@ export class SubscriptionsRepository {
     `;
     const res = await this.pool.query(text, [userId, planType, endDate]);
     return res.rows[0];
+  }
+
+  async createTransaction(
+    userId: string,
+    planType: string,
+    amount: number,
+    currency: string,
+    orderId: string,
+  ): Promise<void> {
+    const text = `
+      INSERT INTO transactions (user_id, plan_type, amount, currency, order_id, status)
+      VALUES ($1, $2, $3, $4, $5, 'INITIATED')
+    `;
+    await this.pool.query(text, [userId, planType, amount, currency, orderId]);
+  }
+
+  async updateTransactionStatus(
+    orderId: string,
+    status: string,
+    paymentId?: string,
+  ): Promise<void> {
+    const text = `
+      UPDATE transactions
+      SET status = $1, payment_id = $2, updated_at = CURRENT_TIMESTAMP
+      WHERE order_id = $3
+    `;
+    await this.pool.query(text, [status, paymentId || null, orderId]);
   }
 }

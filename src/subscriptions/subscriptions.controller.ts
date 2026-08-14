@@ -17,6 +17,42 @@ export class SubscriptionsController {
   }
 
   @Roles('BUSINESS_OWNER')
+  @Post('create-order')
+  async createOrder(
+    @Request() req: any,
+    @Body('plan_type') planType: string,
+  ) {
+    const data = await this.subscriptionsService.createOrder(
+      req.user.id,
+      planType,
+    );
+    return { data };
+  }
+
+  @Roles('BUSINESS_OWNER')
+  @Post('verify-payment')
+  async verifyPayment(
+    @Request() req: any,
+    @Body('plan_type') planType: string,
+    @Body('razorpay_payment_id') paymentId: string,
+    @Body('razorpay_order_id') orderId: string,
+    @Body('razorpay_signature') signature: string,
+  ) {
+    const sub = await this.subscriptionsService.verifyPayment(
+      req.user.id,
+      planType,
+      paymentId,
+      orderId,
+      signature,
+    );
+    return {
+      message: 'Subscription successful',
+      data: sub,
+    };
+  }
+
+  // Fallback direct subscribe for testing or legacy clients
+  @Roles('BUSINESS_OWNER')
   @Post('subscribe')
   async subscribe(
     @Request() req: any,

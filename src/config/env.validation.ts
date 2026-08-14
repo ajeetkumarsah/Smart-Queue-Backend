@@ -23,4 +23,8 @@ export const envValidationSchema = Joi.object({
   JWT_EXPIRATION: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
+
+  // Razorpay
+  RAZORPAY_KEY_ID: Joi.string().required(),
+  RAZORPAY_KEY_SECRET: Joi.string().required(),
 });

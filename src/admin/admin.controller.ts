@@ -277,4 +277,21 @@ export class AdminController {
       message: 'Service deleted successfully',
     };
   }
+
+  @Get('transactions')
+  async getTransactions(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
+  ) {
+    const data = await this.adminService.getAllTransactions(
+      parseInt(page, 10),
+      parseInt(limit, 10),
+    );
+    return {
+      status: true,
+      message: 'Transactions fetched successfully',
+      data: data.data,
+      meta: data.meta,
+    };
+  }
 }
