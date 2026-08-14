@@ -67,18 +67,29 @@ export class AdminService {
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '14 days' AND created_at < CURRENT_DATE - INTERVAL '7 days') as prev_7
       FROM subscriptions
     `;
+    const revenueQuery = `
+      SELECT 
+        SUM(amount) FILTER (WHERE status = 'SUCCESS') as total,
+        SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '30 days') as cur_30,
+        SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '60 days' AND created_at < CURRENT_DATE - INTERVAL '30 days') as prev_30,
+        SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '7 days') as cur_7,
+        SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '14 days' AND created_at < CURRENT_DATE - INTERVAL '7 days') as prev_7
+      FROM transactions
+    `;
 
-    const [usersRes, businessesRes, queuesRes, subsRes] = await Promise.all([
+    const [usersRes, businessesRes, queuesRes, subsRes, revenueRes] = await Promise.all([
       this.pool.query(usersQuery),
       this.pool.query(businessesQuery),
       this.pool.query(queuesQuery),
       this.pool.query(subsQuery),
+      this.pool.query(revenueQuery),
     ]);
 
     const u = usersRes.rows[0];
     const b = businessesRes.rows[0];
     const q = queuesRes.rows[0];
     const s = subsRes.rows[0];
+    const r = revenueRes.rows[0];
 
     return {
       total_users: parseInt(u.total, 10) || 0,
@@ -96,6 +107,10 @@ export class AdminService {
       active_subscriptions: parseInt(s.total, 10) || 0,
       subscriptions_trend: this.calculateGrowth(parseInt(s.cur_30, 10) || 0, parseInt(s.prev_30, 10) || 0),
       subscriptions_percentage: this.calculateGrowth(parseInt(s.cur_7, 10) || 0, parseInt(s.prev_7, 10) || 0),
+
+      total_revenue: parseFloat(r.total) || 0,
+      revenue_trend: this.calculateGrowth(parseFloat(r.cur_30) || 0, parseFloat(r.prev_30) || 0),
+      revenue_percentage: this.calculateGrowth(parseFloat(r.cur_7) || 0, parseFloat(r.prev_7) || 0),
     };
   }
 
