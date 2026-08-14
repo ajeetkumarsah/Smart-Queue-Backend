@@ -12,6 +12,7 @@ export interface StandardResponse<T = any> {
   message: string;
   messageType: 'toast' | 'popup' | 'none';
   data: T | null;
+  meta?: any;
   error: string | null;
 }
 
@@ -45,6 +46,7 @@ export class ResponseTransformInterceptor<T>
             messageType:
               responseData.messageType ?? defaultMessageType,
             data: responseData.data ?? null,
+            meta: responseData.meta,
             error: responseData.error ?? null,
           };
         }
@@ -61,6 +63,7 @@ export class ResponseTransformInterceptor<T>
             messageType:
               responseData.messageType ?? defaultMessageType,
             data: responseData.data,
+            meta: responseData.meta,
             error: null,
           };
         }
