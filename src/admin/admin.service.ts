@@ -73,16 +73,27 @@ export class AdminService {
         SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '30 days') as cur_30,
         SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '60 days' AND created_at < CURRENT_DATE - INTERVAL '30 days') as prev_30,
         SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '7 days') as cur_7,
-        SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '14 days' AND created_at < CURRENT_DATE - INTERVAL '7 days') as prev_7
+        SUM(amount) FILTER (WHERE status = 'SUCCESS' AND created_at >= CURRENT_DATE - INTERVAL '14 days' AND created_at < CURRENT_DATE - INTERVAL '7 days') as prev_7,
+        SUM(amount) as total_ordered,
+        SUM(amount) FILTER (WHERE status = 'REFUNDED') as total_refunded,
+        SUM(amount) FILTER (WHERE status = 'PENDING' OR status = 'FAILED') as total_due
       FROM transactions
     `;
 
-    const [usersRes, businessesRes, queuesRes, subsRes, revenueRes] = await Promise.all([
+    const audienceQuery = `
+      SELECT 
+        COUNT(*) FILTER (WHERE role = 'CUSTOMER') as customers,
+        COUNT(*) FILTER (WHERE role = 'BUSINESS') as businesses
+      FROM users
+    `;
+    
+    const [usersRes, businessesRes, queuesRes, subsRes, revenueRes, audienceRes] = await Promise.all([
       this.pool.query(usersQuery),
       this.pool.query(businessesQuery),
       this.pool.query(queuesQuery),
       this.pool.query(subsQuery),
       this.pool.query(revenueQuery),
+      this.pool.query(audienceQuery),
     ]);
 
     const u = usersRes.rows[0];
@@ -90,6 +101,7 @@ export class AdminService {
     const q = queuesRes.rows[0];
     const s = subsRes.rows[0];
     const r = revenueRes.rows[0];
+    const a = audienceRes.rows[0];
 
     return {
       total_users: parseInt(u.total, 10) || 0,
@@ -111,6 +123,15 @@ export class AdminService {
       total_revenue: parseFloat(r.total) || 0,
       revenue_trend: this.calculateGrowth(parseFloat(r.cur_30) || 0, parseFloat(r.prev_30) || 0),
       revenue_percentage: this.calculateGrowth(parseFloat(r.cur_7) || 0, parseFloat(r.prev_7) || 0),
+      
+      // New Real Data
+      revenue_received: parseFloat(r.total) || 0,
+      revenue_ordered: parseFloat(r.total_ordered) || 0,
+      revenue_refunded: parseFloat(r.total_refunded) || 0,
+      revenue_due: parseFloat(r.total_due) || 0,
+      
+      audience_customers: parseInt(a.customers, 10) || 0,
+      audience_businesses: parseInt(a.businesses, 10) || 0,
     };
   }
 
