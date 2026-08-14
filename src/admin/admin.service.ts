@@ -82,8 +82,8 @@ export class AdminService {
 
     const audienceQuery = `
       SELECT 
-        COUNT(*) FILTER (WHERE role = 'CUSTOMER') as customers,
-        COUNT(*) FILTER (WHERE role = 'BUSINESS') as businesses
+        COUNT(*) FILTER (WHERE UPPER(role) IN ('CUSTOMER', 'USER', 'CLIENT')) as customers,
+        COUNT(*) FILTER (WHERE UPPER(role) IN ('BUSINESS', 'PROVIDER', 'OWNER', 'VENDOR')) as businesses
       FROM users
     `;
     
