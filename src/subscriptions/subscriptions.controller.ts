@@ -12,8 +12,16 @@ export class SubscriptionsController {
   @Roles('BUSINESS_OWNER')
   @Get('my')
   async getMySubscription(@Request() req: any) {
-    const sub = await this.subscriptionsService.getActiveSubscription(req.user.id);
-    return { data: sub };
+    const sub = await this.subscriptionsService.getActiveSubscription(
+      req.user.id,
+    );
+    return {
+      status: true,
+      message: 'Subscription fetched',
+      messageType: 'none',
+      data: sub,
+      error: null,
+    };
   }
 
   @Roles('BUSINESS_OWNER')
@@ -26,7 +34,13 @@ export class SubscriptionsController {
       req.user.id,
       planType,
     );
-    return { data };
+    return {
+      status: true,
+      message: 'Order created successfully',
+      messageType: 'none',
+      data,
+      error: null,
+    };
   }
 
   @Roles('BUSINESS_OWNER')
@@ -46,8 +60,11 @@ export class SubscriptionsController {
       signature,
     );
     return {
-      message: 'Subscription successful',
+      status: true,
+      message: 'Subscription activated successfully',
+      messageType: 'toast',
       data: sub,
+      error: null,
     };
   }
 
@@ -58,10 +75,16 @@ export class SubscriptionsController {
     @Request() req: any,
     @Body('plan_type') planType: string,
   ) {
-    const sub = await this.subscriptionsService.subscribe(req.user.id, planType);
+    const sub = await this.subscriptionsService.subscribe(
+      req.user.id,
+      planType,
+    );
     return {
-      message: 'Subscription successful',
+      status: true,
+      message: 'Subscription activated successfully',
+      messageType: 'toast',
       data: sub,
+      error: null,
     };
   }
 }

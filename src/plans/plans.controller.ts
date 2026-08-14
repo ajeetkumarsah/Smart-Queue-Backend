@@ -28,14 +28,15 @@ export class PlansController {
   @Get()
   async getActivePlans(@Request() req: any) {
     const plans = await this.plansService.getActivePlans();
-    
+
     // Get the user's active subscription
-    const activeSubscription = await this.subscriptionsService.getActiveSubscription(req.user.id);
+    const activeSubscription =
+      await this.subscriptionsService.getActiveSubscription(req.user.id);
     const activePlanCode = activeSubscription?.plan_type;
 
     // Attach is_current_active_plan flag, guaranteeing at most one is active
     let foundActive = false;
-    const plansWithStatus = plans.map(plan => {
+    const plansWithStatus = plans.map((plan) => {
       let is_current = false;
       if (!foundActive && activePlanCode === plan.code) {
         is_current = true;
@@ -47,7 +48,13 @@ export class PlansController {
       };
     });
 
-    return { status: true, data: plansWithStatus };
+    return {
+      status: true,
+      message: 'Plans fetched',
+      messageType: 'none',
+      data: plansWithStatus,
+      error: null,
+    };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -55,7 +62,13 @@ export class PlansController {
   @Get('all')
   async getAllPlans() {
     const plans = await this.plansService.getAllPlans();
-    return { status: true, data: plans };
+    return {
+      status: true,
+      message: 'All plans fetched',
+      messageType: 'none',
+      data: plans,
+      error: null,
+    };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -63,7 +76,13 @@ export class PlansController {
   @Post()
   async createPlan(@Body() data: Partial<PlanEntity>) {
     const plan = await this.plansService.createPlan(data);
-    return { data: plan, message: 'Plan created successfully' };
+    return {
+      status: true,
+      message: 'Plan created successfully',
+      messageType: 'toast',
+      data: plan,
+      error: null,
+    };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -74,7 +93,13 @@ export class PlansController {
     @Body() data: Partial<PlanEntity>,
   ) {
     const plan = await this.plansService.updatePlan(id, data);
-    return { data: plan, message: 'Plan updated successfully' };
+    return {
+      status: true,
+      message: 'Plan updated successfully',
+      messageType: 'toast',
+      data: plan,
+      error: null,
+    };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -82,6 +107,12 @@ export class PlansController {
   @Delete(':id')
   async deletePlan(@Param('id') id: string) {
     await this.plansService.deletePlan(id);
-    return { message: 'Plan deleted successfully' };
+    return {
+      status: true,
+      message: 'Plan deleted successfully',
+      messageType: 'toast',
+      data: null,
+      error: null,
+    };
   }
 }

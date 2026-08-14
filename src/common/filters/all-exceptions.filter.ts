@@ -25,27 +25,44 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null;
 
-    const message =
-      exception instanceof HttpException
-        ? (exceptionResponse as any)?.message || exception.message
-        : (exception as any)?.message || 'Internal server error';
+    // Extract message — handle array messages from class-validator
+    let message: string;
+    if (exception instanceof HttpException) {
+      const raw = (exceptionResponse as any)?.message;
+      if (Array.isArray(raw)) {
+        message = raw.join(', ');
+      } else {
+        message = raw?.toString() || exception.message;
+      }
+    } else {
+      message = (exception as any)?.message || 'Internal server error';
+    }
+
+    // Determine messageType based on HTTP status
+    let messageType: 'toast' | 'popup' | 'none' = 'toast';
+    if (httpStatus === HttpStatus.UNAUTHORIZED) {
+      messageType = 'none'; // handled by token refresh logic
+    } else if (httpStatus === HttpStatus.FORBIDDEN) {
+      messageType = 'popup'; // critical: access denied, plan expired
+    }
+
+    // Determine error label
+    const errorLabel =
+      (exceptionResponse as any)?.error ||
+      (httpStatus >= 500 ? 'Internal Server Error' : 'Bad Request');
 
     // Log the error with stack trace
     this.logger.error(
-      `HTTP Status: ${String(httpStatus)} Error Message: ${JSON.stringify(message)} on ${String(request.method)} ${String(request.url)}`,
+      `HTTP ${String(httpStatus)}: ${JSON.stringify(message)} — ${String(request.method)} ${String(request.url)}`,
       (exception as any)?.stack,
     );
 
     const responseBody = {
-      statusCode: httpStatus,
-      message: message,
-      error:
-        (exceptionResponse as any)?.error ||
-        (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR
-          ? 'Internal Server Error'
-          : undefined),
-      timestamp: new Date().toISOString(),
-      path: String(request.url),
+      status: false,
+      message,
+      messageType,
+      data: null,
+      error: errorLabel,
     };
 
     response.status(httpStatus).json(responseBody);
