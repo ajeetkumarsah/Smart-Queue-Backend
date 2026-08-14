@@ -21,7 +21,19 @@ export class SubscriptionsService {
 
   async getActiveSubscription(userId: string) {
     const subscription = await this.subscriptionsRepo.findActiveByUserId(userId);
-    if (!subscription) return null;
+    if (!subscription) {
+      // Default to BASIC plan if no active subscription exists
+      const plan = await this.subscriptionsRepo.findPlanByCode('BASIC');
+      return {
+        id: 'default_basic',
+        user_id: userId,
+        plan_type: 'BASIC',
+        status: 'ACTIVE',
+        start_date: new Date(),
+        end_date: new Date(new Date().setFullYear(new Date().getFullYear() + 10)),
+        max_businesses: plan ? plan.max_businesses : 1,
+      };
+    }
     const plan = await this.subscriptionsRepo.findPlanByCode(subscription.plan_type);
     return {
       ...subscription,
