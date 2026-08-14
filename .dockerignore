@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+.env.*
+logs
+scratch_test_pg.js
+seed_admin.js
+init_new_tables.js
+.DS_Store
