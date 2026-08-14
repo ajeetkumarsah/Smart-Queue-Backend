@@ -358,7 +358,7 @@ export class AdminService {
 
     const dataValues = [...queryValues, limit, offset];
     const query = `
-      SELECT b.id, b.name, u.email, b.phone, b.is_verified, b.created_at, u.full_name as owner_name, b.is_active
+      SELECT b.id, b.name, u.email, b.phone, b.is_verified, b.created_at, u.full_name as owner_name, b.is_active, b.latitude, b.longitude
       FROM businesses b
       JOIN users u ON b.owner_id = u.id
       ${whereClause}
@@ -521,7 +521,7 @@ export class AdminService {
     return newBusiness;
   }
 
-  async updateBusiness(businessId: string, data: { name?: string; phone?: string; is_active?: boolean }) {
+  async updateBusiness(businessId: string, data: { name?: string; phone?: string; is_active?: boolean; latitude?: number | string; longitude?: number | string; maps_link?: string }) {
     const fields: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -529,6 +529,26 @@ export class AdminService {
     if (data.name !== undefined) { fields.push(`name = $${idx++}`); values.push(data.name); }
     if (data.phone !== undefined) { fields.push(`phone = $${idx++}`); values.push(data.phone); }
     if (data.is_active !== undefined) { fields.push(`is_active = $${idx++}`); values.push(data.is_active); }
+    
+    let lat = data.latitude !== undefined && data.latitude !== '' ? parseFloat(data.latitude as string) : null;
+    let lng = data.longitude !== undefined && data.longitude !== '' ? parseFloat(data.longitude as string) : null;
+
+    if (data.maps_link) {
+      const loc = await extractLocationFromMapsUrl(data.maps_link);
+      if (loc) {
+        lat = loc.latitude;
+        lng = loc.longitude;
+      }
+    }
+
+    if (data.latitude !== undefined || data.maps_link) {
+      fields.push(`latitude = $${idx++}`);
+      values.push(lat);
+    }
+    if (data.longitude !== undefined || data.maps_link) {
+      fields.push(`longitude = $${idx++}`);
+      values.push(lng);
+    }
 
     if (fields.length === 0) return null;
 
@@ -537,7 +557,7 @@ export class AdminService {
       UPDATE businesses
       SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${idx}
-      RETURNING id, name, phone, is_active, is_verified
+      RETURNING id, name, phone, is_active, is_verified, latitude, longitude
     `;
     const oldRes = await this.pool.query(`SELECT * FROM businesses WHERE id = $1`, [businessId]);
     const oldData = oldRes.rows[0];

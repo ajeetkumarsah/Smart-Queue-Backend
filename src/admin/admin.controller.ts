@@ -167,7 +167,7 @@ export class AdminController {
   @Patch('businesses/:id')
   async updateBusiness(
     @Param('id') id: string,
-    @Body() body: { name?: string; phone?: string; is_active?: boolean },
+    @Body() body: { name?: string; phone?: string; is_active?: boolean; latitude?: number | string; longitude?: number | string; maps_link?: string },
   ) {
     const data = await this.adminService.updateBusiness(id, body);
     return {
