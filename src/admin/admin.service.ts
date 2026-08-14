@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException, BadRequestException } from '@nes
 import * as bcrypt from 'bcryptjs';
 import { Pool } from 'pg';
 import { PG_CONNECTION } from '../database/database.constants';
+import { extractLocationFromMapsUrl } from '../utils/location.utils';
 
 @Injectable()
 export class AdminService {
@@ -489,7 +490,7 @@ export class AdminService {
   }
 
   // --- Businesses CRUD ---
-  async createBusiness(data: { owner_id: string; name: string; phone: string; category?: string; address?: string }) {
+  async createBusiness(data: { owner_id: string; name: string; phone: string; category?: string; address?: string; maps_link?: string }) {
     // Check if owner exists
     const checkQuery = `SELECT id FROM users WHERE id = $1`;
     const checkRes = await this.pool.query(checkQuery, [data.owner_id]);
@@ -497,12 +498,22 @@ export class AdminService {
       throw new BadRequestException('Owner not found');
     }
 
+    let lat = null;
+    let lng = null;
+    if (data.maps_link) {
+      const loc = await extractLocationFromMapsUrl(data.maps_link);
+      if (loc) {
+        lat = loc.latitude;
+        lng = loc.longitude;
+      }
+    }
+
     const query = `
-      INSERT INTO businesses (owner_id, name, phone, category, address)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, name, phone, is_active, is_verified, created_at
+      INSERT INTO businesses (owner_id, name, phone, category, address, latitude, longitude)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, name, phone, is_active, is_verified, created_at, latitude, longitude
     `;
-    const values = [data.owner_id, data.name, data.phone, data.category || '', data.address || ''];
+    const values = [data.owner_id, data.name, data.phone, data.category || '', data.address || '', lat, lng];
     
     const res = await this.pool.query(query, values);
     const newBusiness = res.rows[0];

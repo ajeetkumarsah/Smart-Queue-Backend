@@ -3,6 +3,7 @@ import { BusinessesRepository } from './businesses.repository';
 import { CreateBusinessDto, UpdateBusinessDto } from './businesses.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { extractLocationFromMapsUrl } from '../utils/location.utils';
 
 @Injectable()
 export class BusinessesService {
@@ -24,14 +25,25 @@ export class BusinessesService {
       }
     }
 
+    let lat = dto.latitude;
+    let lng = dto.longitude;
+
+    if (dto.maps_link) {
+      const loc = await extractLocationFromMapsUrl(dto.maps_link);
+      if (loc) {
+        lat = loc.latitude;
+        lng = loc.longitude;
+      }
+    }
+
     return this.businessesRepository.create({
       owner_id: ownerId,
       name: dto.name,
       description: dto.description,
       address: dto.address,
       phone: dto.phone,
-      latitude: dto.latitude,
-      longitude: dto.longitude,
+      latitude: lat,
+      longitude: lng,
       is_active: true,
       is_verified: false,
     });

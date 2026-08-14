@@ -20,6 +20,10 @@ export class CreateBusinessDto {
   @IsOptional()
   phone?: string;
 
+  @IsString()
+  @IsOptional()
+  maps_link?: string;
+
   @IsNumber()
   @IsOptional()
   latitude?: number;
@@ -49,6 +53,10 @@ export class UpdateBusinessDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @IsString()
+  @IsOptional()
+  maps_link?: string;
 
   @IsNumber()
   @IsOptional()

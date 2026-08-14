@@ -142,7 +142,7 @@ export class AdminController {
   }
 
   @Post('businesses')
-  async createBusiness(@Body() body: { owner_id: string; name: string; phone: string; category?: string; address?: string }) {
+  async createBusiness(@Body() body: { owner_id: string; name: string; phone: string; category?: string; address?: string; maps_link?: string }) {
     const data = await this.adminService.createBusiness(body);
     return {
       status: true,
