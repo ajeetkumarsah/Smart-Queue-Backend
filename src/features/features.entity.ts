@@ -3,4 +3,5 @@ export class FeatureEntity {
   name: string;
   created_at: Date;
   updated_at: Date;
+  display_order: number;
 }

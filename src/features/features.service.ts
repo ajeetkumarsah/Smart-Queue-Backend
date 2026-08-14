@@ -25,4 +25,8 @@ export class FeaturesService {
   async deleteFeature(id: string): Promise<void> {
     await this.featuresRepo.delete(id);
   }
+
+  async reorderFeatures(items: { id: string; display_order: number }[]): Promise<void> {
+    await this.featuresRepo.reorder(items);
+  }
 }

@@ -26,6 +26,17 @@ export class FeaturesController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPER_ADMIN')
+  @Patch('reorder')
+  async reorderFeatures(@Body('items') items: { id: string; display_order: number }[]) {
+    if (!items || !Array.isArray(items)) {
+      return { status: false, message: 'Invalid items array' };
+    }
+    await this.featuresService.reorderFeatures(items);
+    return { status: true, message: 'Features reordered successfully' };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
   @Post()
   async createFeature(@Body() data: Partial<FeatureEntity>) {
     const feature = await this.featuresService.createFeature(data);
