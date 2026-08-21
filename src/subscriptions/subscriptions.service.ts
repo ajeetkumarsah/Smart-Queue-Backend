@@ -41,10 +41,10 @@ export class SubscriptionsService {
     };
   }
 
-  async createOrder(userId: string, planType: string) {
-    const plan = await this.subscriptionsRepo.findPlanByCode(planType);
-    if (!plan) {
-      throw new BadRequestException('Invalid plan type.');
+  async createOrder(userId: string, planType: string, planId: string) {
+    const plan = await this.subscriptionsRepo.findPlanById(planId);
+    if (!plan || plan.code !== planType) {
+      throw new BadRequestException('Invalid plan details provided.');
     }
 
     const activeSub = await this.getActiveSubscription(userId);
@@ -78,7 +78,7 @@ export class SubscriptionsService {
     const options = {
       amount: amountInPaise,
       currency: 'INR',
-      receipt: `receipt_${userId}_${Date.now()}`,
+      receipt: `r_${userId.substring(0, 8)}_${Date.now()}`,
     };
 
     try {
@@ -112,6 +112,11 @@ export class SubscriptionsService {
     orderId: string,
     signature: string,
   ) {
+    const transaction = await this.subscriptionsRepo.findTransactionByOrderId(orderId);
+    if (transaction && transaction.status === 'SUCCESS') {
+      return this.getActiveSubscription(userId);
+    }
+
     const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
     const generatedSignature = crypto
       .createHmac('sha256', secret)
@@ -154,5 +159,40 @@ export class SubscriptionsService {
     await this.subscriptionsRepo.deactivateOldSubscriptions(userId);
 
     return this.subscriptionsRepo.create(userId, planType);
+  }
+
+  async handleWebhook(rawBody: Buffer, signature: string) {
+    const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+    const generatedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('hex');
+
+    if (generatedSignature !== signature) {
+      throw new BadRequestException('Invalid webhook signature');
+    }
+
+    const payload = JSON.parse(rawBody.toString('utf8'));
+    
+    if (payload.event === 'order.paid') {
+      // In order.paid event, the payment entity is present
+      const paymentEntity = payload.payload.payment.entity;
+      const orderId = paymentEntity.order_id;
+      const paymentId = paymentEntity.id;
+      
+      const transaction = await this.subscriptionsRepo.findTransactionByOrderId(orderId);
+      if (transaction && transaction.status !== 'SUCCESS') {
+        // Mark as success
+        await this.subscriptionsRepo.updateTransactionStatus(
+          orderId,
+          'SUCCESS',
+          paymentId,
+        );
+        
+        // Activate subscription
+        await this.subscribe(transaction.user_id, transaction.plan_type);
+      }
+    }
+    return { status: 'ok' };
   }
 }

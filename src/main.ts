@@ -11,6 +11,7 @@ import { join } from 'path';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: winstonConfig,
+    rawBody: true,
   });
 
   app.enableCors();

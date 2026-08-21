@@ -27,6 +27,16 @@ export class SubscriptionsRepository {
     return res.rows[0] || null;
   }
 
+  async findPlanById(id: string): Promise<any> {
+    const text = `
+      SELECT * FROM plans
+      WHERE id = $1 AND is_active = true
+      LIMIT 1
+    `;
+    const res = await this.pool.query(text, [id]);
+    return res.rows[0] || null;
+  }
+
   async findExpiringIn(days: number): Promise<SubscriptionEntity[]> {
     const text = `
       SELECT * FROM subscriptions
@@ -101,5 +111,15 @@ export class SubscriptionsRepository {
       WHERE order_id = $3
     `;
     await this.pool.query(text, [status, paymentId || null, orderId]);
+  }
+
+  async findTransactionByOrderId(orderId: string): Promise<any> {
+    const text = `
+      SELECT * FROM transactions
+      WHERE order_id = $1
+      LIMIT 1
+    `;
+    const res = await this.pool.query(text, [orderId]);
+    return res.rows[0] || null;
   }
 }

@@ -1,14 +1,14 @@
-import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Headers } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('subscriptions')
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('BUSINESS_OWNER')
   @Get('my')
   async getMySubscription(@Request() req: any) {
@@ -24,15 +24,18 @@ export class SubscriptionsController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('BUSINESS_OWNER')
   @Post('create-order')
   async createOrder(
     @Request() req: any,
     @Body('plan_type') planType: string,
+    @Body('plan_id') planId: string,
   ) {
     const data = await this.subscriptionsService.createOrder(
       req.user.id,
       planType,
+      planId,
     );
     return {
       status: true,
@@ -43,6 +46,7 @@ export class SubscriptionsController {
     };
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('BUSINESS_OWNER')
   @Post('verify-payment')
   async verifyPayment(
@@ -69,6 +73,7 @@ export class SubscriptionsController {
   }
 
   // Fallback direct subscribe for testing or legacy clients
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('BUSINESS_OWNER')
   @Post('subscribe')
   async subscribe(
@@ -86,5 +91,17 @@ export class SubscriptionsController {
       data: sub,
       error: null,
     };
+  }
+
+  @Post('webhook')
+  async handleWebhook(
+    @Request() req: any,
+    @Headers('x-razorpay-signature') signature: string,
+  ) {
+    // req.rawBody is populated because rawBody: true is enabled in NestFactory
+    if (!req.rawBody) {
+      return { status: 'ignored', reason: 'rawBody missing' };
+    }
+    return this.subscriptionsService.handleWebhook(req.rawBody, signature);
   }
 }
